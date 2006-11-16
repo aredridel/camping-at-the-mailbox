@@ -38,7 +38,7 @@ module Mailbox
 		class Mailboxes < R '/mailboxes'
 			include IMAP
 			def get
-				@mailboxes = _lsub('', '*')
+				@mailboxes = _imap.lsub('', '*')
 				render :mailboxes
 			end
 		end
