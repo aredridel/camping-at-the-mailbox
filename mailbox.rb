@@ -46,7 +46,7 @@ module Mailbox
 			def get(mb)
 				@mailbox = mb
 				_imap.select(mb)
-				@messages = _imap.fetch(1..10, "BODY[HEADER.FIELDS (SUBJECT)]")
+				@messages = _imap.fetch(1..10, ['FLAGS', 'ENVELOPE', 'UID'])
 				render :mailbox
 			end
 		end
@@ -62,7 +62,18 @@ module Mailbox
 						margin-top: 1in;
 						margin-right: 2in;
 					}	
+					.message p { margin: 0; }
 				}
+			end
+		end
+
+		class Message < R '/mailbox/(.*)/messages/(\d+)'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				_imap.select(mailbox)
+				@message = _imap.uid_fetch(@uid, ['RFC822.HEADER', 'RFC822.TEXT'])[0]
+				render :message
 			end
 		end
 	end
@@ -113,11 +124,41 @@ module Mailbox
 			h1 "#{@mailbox}"
 			table do
 				@messages.each do |message|
-					tr do
-						td { message.attr['BODY[HEADER.FIELDS (SUBJECT)]'] }
+					$stderr.puts message.inspect
+					env = message.attr['ENVELOPE']
+					flags = message.attr['FLAGS']
+					tr(:class => 'message') do
+						td do
+							p do 
+								span { 'From ' }
+								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
+									env.from[0].name || env.from[0].mailbox 
+								end
+								span(:class => 'date') {
+									Time.parse(env.date).strftime('%Y/%m/%d %H:%M')
+								}
+								if !flags.empty? then
+									flags.map { |e| Flagnames[e] }.join(', ')
+								end
+							end
+							p do
+								a(env.subject, :href => R(Message, @mailbox, message.attr['UID']))
+							end 
+						end
 					end
 				end
 			end
 		end
+
+		def message	
+			p "Mailbox #{@mailbox} message uid #{@uid}"
+			@message.attr['RFC822.HEADER'].each do |l|
+				p l
+			end
+			@message.attr['RFC822.TEXT'].each do |l|
+				p l
+			end
+		end
+
 	end
 end
