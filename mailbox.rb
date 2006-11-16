@@ -173,7 +173,7 @@ module Mailbox
 		end
 
 		def message	
-			p "Mailbox #{@mailbox} message uid #{@uid}"
+			h1 "#{@mailbox} message #{@message.seqno}"
 			p "From: " << (envelope.from.map do |f|
 				(f.name || '')  + " <" + f.mailbox + '@' + f.host + '>'
 			end.join(' ,'))
