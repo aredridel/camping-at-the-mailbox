@@ -61,7 +61,16 @@ else 2 end, mb.name.downcase] }
 			def get(mb)
 				@mailbox = mb
 				imap.select(mb)
-				@messages = imap.fetch(1..10, ['FLAGS', 'ENVELOPE', 'UID'])
+				@total = imap.responses["EXISTS"][-1].to_i
+				@unread = imap.responses["RECENT"][-1].to_i
+				if @total > 0 
+					fin = if @total > 10
+						10
+					else
+						@total
+					end
+					@messages = imap.fetch(1..fin, ['FLAGS', 'ENVELOPE', 'UID'])
+				end
 				render :mailbox
 			end
 		end
