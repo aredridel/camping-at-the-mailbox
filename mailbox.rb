@@ -10,7 +10,7 @@ Camping.goes :Mailbox
 module Mailbox
 	include Camping::Session
 
-	module IMAP
+	module Helpers
 		def _imap
 			$imap[@cookies.camping_sid]
 		end
@@ -18,7 +18,6 @@ module Mailbox
 
 	module Controllers
 		class Login < R '/login'
-			include IMAP
 			def post
 				$imap[@cookies.camping_sid] = Net::IMAP.new('mail.theinternetco.net')
 				begin
@@ -37,7 +36,6 @@ module Mailbox
 		end
 
 		class Mailboxes < R '/mailboxes'
-			include IMAP
 			def get
 				@mailboxes = _imap.lsub('', '*')
 				render :mailboxes
@@ -45,7 +43,6 @@ module Mailbox
 		end
 
 		class Mailbox < R '/mailbox/(.+)/messages/'
-			include IMAP
 			def get(mb)
 				@mailbox = mb
 				_imap.select(mb)
