@@ -101,7 +101,7 @@ module Mailbox
 				input :name => 'username', :type => 'text'; br
 
 				label 'Password', :for => 'password'; br
-				input :name => 'password', :type => 'text'; br
+				input :name => 'password', :type => 'password'; br
 
 				input :type => 'submit', :name => 'login', :value => 'Login'
 			end
