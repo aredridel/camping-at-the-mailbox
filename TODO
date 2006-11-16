@@ -1,2 +1,3 @@
 - handle multipart messages and attachments
 - address book
+- pagination of mailbox list
