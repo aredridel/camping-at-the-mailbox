@@ -11,7 +11,7 @@ module Mailbox
 	include Camping::Session
 
 	module Helpers
-		def _imap
+		def imap
 			$imap[@cookies.camping_sid]
 		end
 	end
@@ -21,7 +21,7 @@ module Mailbox
 			def post
 				$imap[@cookies.camping_sid] = Net::IMAP.new('mail.theinternetco.net')
 				begin
-					_imap.authenticate('LOGIN', input.username, input.password)
+					imap.authenticate('LOGIN', input.username, input.password)
 					@login = 'login success !'
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
@@ -37,7 +37,7 @@ module Mailbox
 
 		class Mailboxes < R '/mailboxes'
 			def get
-				@mailboxes = _imap.lsub('', '*')
+				@mailboxes = imap.lsub('', '*')
 				render :mailboxes
 			end
 		end
@@ -45,8 +45,8 @@ module Mailbox
 		class Mailbox < R '/mailbox/(.+)/messages/'
 			def get(mb)
 				@mailbox = mb
-				_imap.select(mb)
-				@messages = _imap.fetch(1..10, ['FLAGS', 'ENVELOPE', 'UID'])
+				imap.select(mb)
+				@messages = imap.fetch(1..10, ['FLAGS', 'ENVELOPE', 'UID'])
 				render :mailbox
 			end
 		end
@@ -71,8 +71,8 @@ module Mailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				_imap.select(mailbox)
-				@message = _imap.uid_fetch(@uid, ['RFC822.HEADER', 'RFC822.TEXT'])[0]
+				imap.select(mailbox)
+				@message = imap.uid_fetch(@uid, ['ENVELOPE', 'RFC822.TEXT'])[0]
 				render :message
 			end
 		end
