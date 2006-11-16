@@ -3,7 +3,8 @@
 require 'camping'
 require 'net/imap'
 
-$imap = {} if !$imap
+$residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
+
 Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 
 Camping.goes :Mailbox
@@ -12,18 +13,22 @@ module Mailbox
 
 	module Helpers
 		def imap
-			$imap[@cookies.camping_sid]
+			residentsession[:imap]
 		end
 
 		def envelope
 			@message.attr['ENVELOPE']
+		end
+
+		def residentsession
+			$residentsession[@cookies.camping_sid]
 		end
 	end
 
 	module Controllers
 		class Login < R '/login'
 			def post
-				$imap[@cookies.camping_sid] = Net::IMAP.new('mail.theinternetco.net')
+				residentsession[:imap] = Net::IMAP.new('mail.theinternetco.net')
 				begin
 					imap.authenticate('LOGIN', input.username, input.password)
 					@login = 'login success !'
