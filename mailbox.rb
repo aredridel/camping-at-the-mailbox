@@ -3,7 +3,8 @@
 require 'camping'
 require 'net/imap'
 
-$imap = {}
+$imap = {} if !$imap
+Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 
 Camping.goes :Mailbox
 module Mailbox
