@@ -42,6 +42,31 @@ module Mailbox
 				render :mailboxes
 			end
 		end
+
+		class Mailbox < R '/mailbox/(.+)/messages/'
+			include IMAP
+			def get(mb)
+				@mailbox = mb
+				_imap.select(mb)
+				@messages = _imap.fetch(1..10, "BODY[HEADER.FIELDS (SUBJECT)]")
+				render :mailbox
+			end
+		end
+
+		class Style < R '/styles.css'
+			def get
+				@headers['Content-Type'] = 'text/css; charset=UTF-8'
+				@body = %{
+					body {
+						font-family: Gentium, Palatino, Palladio, serif;
+						background-color: #ffd;
+						margin-left: 1in;
+						margin-top: 1in;
+						margin-right: 2in;
+					}	
+				}
+			end
+		end
 	end
 
 	module Views
@@ -76,8 +101,25 @@ module Mailbox
 		end
 
 		def mailboxes
-			
+			ul do
+				@mailboxes.each do |mb|
+					$stderr.puts mb.name
+					li do
+						a(mb.name, :href => R(Mailbox, mb.name))
+					end
+				end
+			end
 		end
 
+		def mailbox
+			h1 "#{@mailbox}"
+			table do
+				@messages.each do |message|
+					tr do
+						td { message.attr['BODY[HEADER.FIELDS (SUBJECT)]'] }
+					end
+				end
+			end
+		end
 	end
 end
