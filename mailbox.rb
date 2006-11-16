@@ -14,6 +14,10 @@ module Mailbox
 		def imap
 			$imap[@cookies.camping_sid]
 		end
+
+		def envelope
+			@message.attr['ENVELOPE']
+		end
 	end
 
 	module Controllers
@@ -76,6 +80,16 @@ module Mailbox
 				render :message
 			end
 		end
+
+		class Header < R '/mailbox/(.*)/messages/(\d+)/headers'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				imap.select(mailbox)
+				@header = imap.uid_fetch(@uid, ['RFC822.HEADER'])[0].attr['RFC822.HEADER']
+				render :header
+			end
+		end
 	end
 
 	module Views
@@ -134,7 +148,11 @@ module Mailbox
 									env.from[0].name || env.from[0].mailbox 
 								end
 								span(:class => 'date') {
-									Time.parse(env.date).strftime('%Y/%m/%d %H:%M')
+									if env.date
+										Time.parse(env.date).strftime('%Y/%m/%d %H:%M')
+									else
+										'(no date)'
+									end
 								}
 								if !flags.empty? then
 									flags.map { |e| Flagnames[e] }.join(', ')
@@ -151,11 +169,19 @@ module Mailbox
 
 		def message	
 			p "Mailbox #{@mailbox} message uid #{@uid}"
-			@message.attr['RFC822.HEADER'].each do |l|
-				p l
+			p "From: " << (envelope.from.map do |f|
+				(f.name || '')  + " <" + f.mailbox + '@' + f.host + '>'
+			end.join(' ,'))
+			p "Date: " + (envelope.date || 'none')
+			p "Subject: " + envelope.subject
+			pre do
+				@message.attr['RFC822.TEXT'].gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 			end
-			@message.attr['RFC822.TEXT'].each do |l|
-				p l
+		end
+
+		def header
+			pre do
+				@header.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 			end
 		end
 
