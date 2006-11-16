@@ -112,7 +112,6 @@ module Mailbox
 		def mailboxes
 			ul do
 				@mailboxes.each do |mb|
-					$stderr.puts mb.name
 					li do
 						a(mb.name, :href => R(Mailbox, mb.name))
 					end
