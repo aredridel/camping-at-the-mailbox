@@ -47,6 +47,12 @@ module Mailbox
 		class Mailboxes < R '/mailboxes'
 			def get
 				@mailboxes = imap.lsub('', '*')
+				 if !@mailboxes
+					@error = 'You have no folders subscribed, showing everything'
+					@mailboxes = imap.list('', '*')
+				end
+				@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1
+else 2 end, mb.name.downcase] }
 				render :mailboxes
 			end
 		end
@@ -107,6 +113,9 @@ module Mailbox
 				end
 				body do
 					#h1.header { a 'Mail?', :href => R(Index) }
+					div(:class => 'error') do
+						@error
+					end if @error
 					div.content do
 						self << yield
 					end
@@ -115,6 +124,7 @@ module Mailbox
 		end
 
 		def login
+			p "Username guest@theinternetco.net password Aeco3ahr"
 			form :action => R(Login), :method => 'post' do
 				label 'Username', :for => 'username'; br
 				input :name => 'username', :type => 'text'; br
@@ -139,7 +149,11 @@ module Mailbox
 		end
 
 		def mailbox
-			h1 "#{@mailbox}"
+			h1 "#{@mailbox} (#{@total} total)"
+			if @total == 0
+				p "No messages"
+				return
+			end
 			table do
 				@messages.each do |message|
 					$stderr.puts message.inspect
@@ -154,7 +168,7 @@ module Mailbox
 								end
 								span(:class => 'date') {
 									if env.date
-										Time.parse(env.date).strftime('%Y/%m/%d %H:%M')
+										Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M')
 									else
 										'(no date)'
 									end
