@@ -62,10 +62,9 @@ module CampingAtMailbox
 					else
 						imap.login(input.username, input.password)
 					end
-					@login = 'login success !'
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
-					@login = 'wrong user name or password'
+					@error = 'wrong user name or password'
 				end
 				render :login
 			end
@@ -187,8 +186,6 @@ else 2 end, mb.name.downcase] }
 
 				input :type => 'submit', :name => 'login', :value => 'Login'
 			end
-
-			p { b @login }
 		end
 
 		def mailboxes
