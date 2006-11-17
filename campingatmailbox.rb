@@ -128,7 +128,8 @@ else 2 end, mb.name.downcase] }
 					a { color: #573; }
 					a:visited { color: #341; }
 					a:active { color: #900; }
-					.message p { margin: 0; }
+					.message p { margin: 0; padding: 0; }
+					.message p.subject { text-indent: 1em; }
 					.error { color: #900 }
 				}
 			end
@@ -211,7 +212,7 @@ else 2 end, mb.name.downcase] }
 					flags = message.attr['FLAGS']
 					tr(:class => 'message') do
 						td do
-							p do 
+							p.envelope do 
 								span { 'From ' }
 								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
 									env.from[0].name || env.from[0].mailbox 
@@ -227,7 +228,7 @@ else 2 end, mb.name.downcase] }
 									flags.map { |e| Flagnames[e] }.join(', ')
 								end
 							end
-							p do
+							p.subject do
 								a(env.subject, :href => R(Message, @mailbox, message.attr['UID']))
 							end 
 						end
