@@ -12,6 +12,9 @@
 		- make a frame and display there
 		- link to download
 
+	- use the MIME torture test
+	- properly decode transfer encodings
+
 - address book
 
 
