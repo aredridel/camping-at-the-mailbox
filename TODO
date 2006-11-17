@@ -1,3 +1,18 @@
-- handle attachments
 - improve MIME all around
+	- handle attachments
+	- for text/plain:
+		- wrap at a reasonable width (only for flowed format?)
+		- recognize and link URLs
+
+	- for text/html
+		- sanitize
+		- make loading images optional
+	
+	- for browser-viewable types (image/most)
+		- make a frame and display there
+		- link to download
+
 - address book
+
+
+
