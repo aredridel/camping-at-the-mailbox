@@ -31,7 +31,7 @@ module CampingAtMailbox
 			p do
 				(1..pages).map do |page|
 					if page == current
-						span page
+						text page
 					else
 						a(page, :href => R(controller, *args) + "?page=#{page}")
 					end
@@ -228,7 +228,7 @@ else 2 end, mb.name.downcase] }
 					tr(:class => 'header') do
 						td do
 							p.envelope do 
-								span { 'From ' }
+								text 'From ' 
 								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
 									env.from[0].name || env.from[0].mailbox 
 								end
@@ -257,11 +257,11 @@ else 2 end, mb.name.downcase] }
 			h1 "#{@mailbox} message #{@message.seqno}"
 			div.header do 
 				p do 
-					span "From " 
+					text "From " 
 					envelope.from.each do |f|
 						cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
 					end
-					span (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
+					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
 				end
 				p.subject envelope.subject
 			end
