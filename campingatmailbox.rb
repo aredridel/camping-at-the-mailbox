@@ -8,8 +8,8 @@ $config = YAML.load(File.read('mailbox.conf'))
 
 Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 
-Camping.goes :Mailbox
-module Mailbox
+Camping.goes :CampingAtMailbox
+module CampingAtMailbox
 	include Camping::Session
 
 	module Helpers
