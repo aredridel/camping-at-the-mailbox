@@ -4,6 +4,7 @@ require 'camping'
 require 'net/imap'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
+$config = YAML.load(File.read('mailbox.conf'))
 
 Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 
@@ -34,7 +35,7 @@ module Mailbox
 
 		class Login < R '/login'
 			def post
-				residentsession[:imap] = Net::IMAP.new('mail.theinternetco.net')
+				residentsession[:imap] = Net::IMAP.new($config['server'])
 				begin
 					imap.authenticate('LOGIN', input.username, input.password)
 					@login = 'login success !'
