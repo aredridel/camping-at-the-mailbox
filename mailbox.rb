@@ -26,6 +26,12 @@ module Mailbox
 	end
 
 	module Controllers
+		class Index < R '/'
+			def get
+				redirect Login
+			end
+		end
+
 		class Login < R '/login'
 			def post
 				residentsession[:imap] = Net::IMAP.new('mail.theinternetco.net')
