@@ -87,12 +87,17 @@ else 2 end, mb.name.downcase] }
 				@body = %{
 					body {
 						font-family: Gentium, Palatino, Palladio, serif;
-						background-color: #ffd;
+						background-color: #df7;
+						color: #452;
 						margin-left: 1in;
 						margin-top: 1in;
 						margin-right: 2in;
 					}	
+					a { color: #573; }
+					a:visited { color: #995; }
+					a:active { color: #900; }
 					.message p { margin: 0; }
+					.error { color: #900 }
 				}
 			end
 		end
