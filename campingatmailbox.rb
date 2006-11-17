@@ -273,10 +273,19 @@ else 2 end, mb.name.downcase] }
 				p "Multipart message:"
 				if message['Content-Type'].sub_type == 'alternative'
 					_message(message.parts[0]) # FIXME: there's a better way to pick than the first thing.
+				else
+					message.parts.each do |part|
+						_message(part)
+					end
 				end
 			else
-				pre do
-					message.body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+				if message['Content-Type'].main_type == 'text' and message['Content-Type'].sub_type == 'plain'
+					pre do
+						message.body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+					end
+				else
+					p "This part (of type #{message['Content-Type']}) cannot be displayed
+(attachments aren't supported yet)"
 				end
 			end
 		end
