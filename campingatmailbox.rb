@@ -2,6 +2,7 @@
 
 require 'camping'
 require 'net/imap'
+require 'tmail'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
@@ -153,7 +154,8 @@ else 2 end, mb.name.downcase] }
 				@mailbox = mailbox
 				@uid = uid.to_i
 				imap.select(mailbox)
-				@message = imap.uid_fetch(@uid, ['ENVELOPE', 'RFC822.TEXT'])[0]
+				@message = imap.uid_fetch(@uid, ['ENVELOPE', 'RFC822.TEXT', 'RFC822'])[0]
+				@parsed = TMail::Mail.parse(@message.attr['RFC822'])
 				render :message
 			end
 		end
@@ -261,8 +263,20 @@ else 2 end, mb.name.downcase] }
 				span " on " + (envelope.date || 'none')
 			end
 			p envelope.subject
-			pre do
-				@message.attr['RFC822.TEXT'].gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+
+			_message(@parsed)
+		end
+
+		def _message(message)
+			if message.multipart?
+				p "Multipart message:"
+				if message['Content-Type'].sub_type == 'alternative'
+					_message(message.parts[0]) # FIXME: there's a better way to pick than the first thing.
+				end
+			else
+				pre do
+					message.body.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+				end
 			end
 		end
 

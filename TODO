@@ -1,2 +1,3 @@
-- handle multipart messages and attachments
+- handle attachments
+- improve MIME all around
 - address book
