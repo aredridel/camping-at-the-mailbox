@@ -36,8 +36,13 @@ module Mailbox
 		class Login < R '/login'
 			def post
 				residentsession[:imap] = Net::IMAP.new($config['server'])
+				caps = imap.capability
 				begin
-					imap.authenticate('LOGIN', input.username, input.password)
+					if /AUTH=LOGIN/ === caps
+						imap.authenticate('LOGIN', input.username, input.password)
+					else
+						imap.login(input.username, input.password)
+					end
 					@login = 'login success !'
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
