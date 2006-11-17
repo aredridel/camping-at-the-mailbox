@@ -208,11 +208,14 @@ else 2 end, mb.name.downcase] }
 
 		def message	
 			h1 "#{@mailbox} message #{@message.seqno}"
-			p "From: " << (envelope.from.map do |f|
-				(f.name || '')  + " <" + f.mailbox + '@' + f.host + '>'
-			end.join(' ,'))
-			p "Date: " + (envelope.date || 'none')
-			p "Subject: " + envelope.subject
+			p do 
+				span "From " 
+				envelope.from.each do |f|
+					cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
+				end
+				span " on " + (envelope.date || 'none')
+			end
+			p envelope.subject
 			pre do
 				@message.attr['RFC822.TEXT'].gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 			end
