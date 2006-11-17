@@ -94,7 +94,7 @@ else 2 end, mb.name.downcase] }
 						margin-right: 2in;
 					}	
 					a { color: #573; }
-					a:visited { color: #995; }
+					a:visited { color: #341; }
 					a:active { color: #900; }
 					.message p { margin: 0; }
 					.error { color: #900 }
