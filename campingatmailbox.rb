@@ -142,8 +142,8 @@ else 2 end, mb.name.downcase] }
 					a { color: #573; }
 					a:visited { color: #341; }
 					a:active { color: #900; }
-					.message p { margin: 0; padding: 0; }
-					.message p.subject { text-indent: 1em; }
+					.header p { margin: 0; padding: 0; }
+					.header p.subject { text-indent: 1em; }
 					.error { color: #900 }
 				}
 			end
@@ -225,7 +225,7 @@ else 2 end, mb.name.downcase] }
 					$stderr.puts message.inspect
 					env = message.attr['ENVELOPE']
 					flags = message.attr['FLAGS']
-					tr(:class => 'message') do
+					tr(:class => 'header') do
 						td do
 							p.envelope do 
 								span { 'From ' }
@@ -255,14 +255,16 @@ else 2 end, mb.name.downcase] }
 
 		def message	
 			h1 "#{@mailbox} message #{@message.seqno}"
-			p do 
-				span "From " 
-				envelope.from.each do |f|
-					cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
+			div.header do 
+				p do 
+					span "From " 
+					envelope.from.each do |f|
+						cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
+					end
+					span (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
 				end
-				span " on " + (envelope.date || 'none')
+				p.subject envelope.subject
 			end
-			p envelope.subject
 
 			_message(@parsed)
 		end
