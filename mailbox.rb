@@ -36,6 +36,12 @@ module Mailbox
 		class Login < R '/login'
 			def post
 				residentsession[:imap] = Net::IMAP.new($config['server'])
+				residentsession[:pinger] = Thread.new do 
+					while !residentsession[:imap].disconnected? and residentsession[:imap]
+						residentsession[:imap].noop
+						sleep 60
+					end
+				end
 				caps = imap.capability
 				begin
 					if /AUTH=LOGIN/ === caps
