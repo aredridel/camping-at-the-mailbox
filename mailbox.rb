@@ -145,7 +145,7 @@ else 2 end, mb.name.downcase] }
 		end
 
 		def login
-			p "Username guest@theinternetco.net password Aeco3ahr"
+			p $config['banner']
 			form :action => R(Login), :method => 'post' do
 				label 'Username', :for => 'username'; br
 				input :name => 'username', :type => 'text'; br
