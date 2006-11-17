@@ -254,7 +254,6 @@ else 2 end, mb.name.downcase] }
 		end
 
 		def message	
-			h1 "#{@mailbox} message #{@message.seqno}"
 			div.header do 
 				p do 
 					text "From " 
