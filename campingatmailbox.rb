@@ -275,7 +275,7 @@ else 2 end, mb.name.downcase] }
 				end
 			else
 				pre do
-					message.body.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+					message.body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 				end
 			end
 		end
