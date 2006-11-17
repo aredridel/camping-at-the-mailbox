@@ -24,6 +24,19 @@ module CampingAtMailbox
 		def residentsession
 			$residentsession[@cookies.camping_sid]
 		end
+		
+		def Pager(controller, current, total, n, *args)
+			pages = total / n + (total % n == 0 ? 0 : 1)
+			p do
+				(1..pages).map do |page|
+					if page == current
+						span page
+					else
+						a(page, :href => R(controller, *args) + "?page=#{page}")
+					end
+				end
+			end
+		end
 	end
 
 	module Controllers
@@ -81,13 +94,21 @@ else 2 end, mb.name.downcase] }
 				imap.select(mb)
 				@total = imap.responses["EXISTS"][-1].to_i
 				@unread = imap.responses["RECENT"][-1].to_i
-				if @total > 0 
+				if @input.page.to_i > 0 
+					@page = @input.page.to_i
+					start = (@page - 1) * 10 + 1
+					fin = if @page * 10 > @total then @total else @page * 10 end
+				else
+					@page = 1
+					start = 1
 					fin = if @total > 10
 						10
 					else
 						@total
 					end
-					@messages = imap.fetch(1..fin, ['FLAGS', 'ENVELOPE', 'UID'])
+				end
+				if @total > 0 
+					@messages = imap.fetch(start..fin, ['FLAGS', 'ENVELOPE', 'UID'])
 				end
 				render :mailbox
 			end
@@ -216,6 +237,7 @@ else 2 end, mb.name.downcase] }
 					end
 				end
 			end
+			Pager(Mailbox, @page, @total, 10, @mailbox)
 		end
 
 		def message	
