@@ -74,6 +74,9 @@ module CampingAtMailbox
 			end
 		end
 
+		# You see a room with row upon row of shiny brass doors. 
+		# Which door do you open?
+		#
 		class Mailboxes < R '/mailboxes'
 			def get
 				@mailboxes = imap.lsub('', '*')
@@ -87,6 +90,13 @@ else 2 end, mb.name.downcase] }
 			end
 		end
 
+		# Inside the box seems to be a room. You climb through the tiny brass
+		# door, surprised at how roomy the inside of the box is. There seems
+		# to be a pile of packages to the left, and a simple writing desk on the
+		# right.
+		#
+		# Off in the distance, a faint 'whoopwhoop' noise can be heard.
+		#
 		class Mailbox < R '/mailbox/(.+)/messages/'
 			def get(mb)
 				@mailbox = mb
@@ -113,6 +123,9 @@ else 2 end, mb.name.downcase] }
 			end
 		end
 
+		# A snappily dressed mailman stands over a postal scale in the front
+		# lobby.
+		#
 		class Style < R '/styles.css'
 			def get
 				@headers['Content-Type'] = 'text/css; charset=UTF-8'
