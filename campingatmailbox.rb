@@ -187,7 +187,7 @@ module CampingAtMailbox
 				@mailbox = mailbox
 				@uid = uid.to_i
 				if input.deletemessage == uid
-					raise 'not implemented yet'
+					imap.uid_store(@uid, '+FLAGS', [:Deleted])
 					redirect Mailbox, mailbox
 				else
 					render :deleteq
