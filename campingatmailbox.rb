@@ -27,6 +27,15 @@ module CampingAtMailbox
 			$residentsession[@cookies.camping_sid]
 		end
 		
+		def get_mailbox_list
+			@mailboxes = imap.lsub('', '*')
+			 if !@mailboxes
+				@error = 'You have no folders subscribed, showing everything'
+				@mailboxes = imap.list('', '*')
+			end
+			@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1 else 2 end, mb.name.downcase] }
+		end
+		
 		def Pager(controller, current, total, n, *args)
 			pages = total / n + (total % n == 0 ? 0 : 1)
 			p do
@@ -81,13 +90,7 @@ module CampingAtMailbox
 		#
 		class Mailboxes < R '/mailboxes'
 			def get
-				@mailboxes = imap.lsub('', '*')
-				 if !@mailboxes
-					@error = 'You have no folders subscribed, showing everything'
-					@mailboxes = imap.list('', '*')
-				end
-				@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1
-else 2 end, mb.name.downcase] }
+				get_mailbox_list
 				render :mailboxes
 			end
 		end
