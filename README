@@ -1,0 +1,14 @@
+== Dependencies
+
+- camping
+	- markaby
+	- metaid
+
+- TMail
+- RubyMail
+
+- stdlib
+	- net/imap
+	- yaml
+
+
