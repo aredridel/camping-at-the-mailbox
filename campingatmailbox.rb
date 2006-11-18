@@ -170,6 +170,24 @@ else 2 end, mb.name.downcase] }
 				render :header
 			end
 		end
+
+		class DeleteMessage < R '/mailbox/(.*)/messages/(\d+)/delete'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				render :deleteq
+			end
+			def post(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				if input.deletemessage == uid
+					raise 'not implemented yet'
+					redirect Mailbox, mailbox
+				else
+					render :deleteq
+				end
+			end
+		end
 	end
 
 	module Views
@@ -202,6 +220,14 @@ else 2 end, mb.name.downcase] }
 				input :name => 'password', :type => 'password'; br
 
 				input :type => 'submit', :name => 'login', :value => 'Login'
+			end
+		end
+	
+		def deleteq
+			form :action => R(DeleteMessage, @mailbox, @uid), :method => 'post' do
+				p 'Are you sure you want to delete this message?'
+				input :type => 'hidden', :name => 'deletemessage', :value => @uid
+				input :type => 'submit', :value => 'Confirm'
 			end
 		end
 
@@ -264,6 +290,10 @@ else 2 end, mb.name.downcase] }
 					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
 				end
 				p.subject envelope.subject
+				p.controls do
+					a('header', :href => R(Header, @mailbox, @uid)) 
+					a('delete', :href => R(DeleteMessage, @mailbox, @uid))
+				end
 			end
 
 			_message(@parsed)
