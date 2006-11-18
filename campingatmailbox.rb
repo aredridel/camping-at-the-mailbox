@@ -3,6 +3,7 @@
 require 'camping'
 require 'net/imap'
 require 'tmail'
+require 'rmail/utils'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
@@ -280,8 +281,14 @@ else 2 end, mb.name.downcase] }
 				end
 			else
 				if message['Content-Type'].main_type == 'text' and message['Content-Type'].sub_type == 'plain'
+					if message.transfer_encoding == 'quoted-printable'
+						body = RMail::Utils.quoted_printable_decode(message.body)
+					else
+						body = message.body
+					end
+					# FIXME: handle character set recoding here
 					pre do
-						message.body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+						body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 					end
 				else
 					p "This part (of type #{message['Content-Type']}) cannot be displayed
