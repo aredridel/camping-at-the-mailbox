@@ -132,6 +132,7 @@ else 2 end, mb.name.downcase] }
 			def get
 				@headers['Content-Type'] = 'text/css; charset=UTF-8'
 				@body = %{
+					@media print { .controls {display: none;} }
 					body {
 						font-family: Gentium, Palatino, Palladio, serif;
 						background-color: #df7;
@@ -139,12 +140,14 @@ else 2 end, mb.name.downcase] }
 						margin-left: 1in;
 						margin-top: 1in;
 						margin-right: 2in;
+						margin-bottom: 1in;
 					}	
 					a { color: #573; }
 					a:visited { color: #341; }
 					a:active { color: #900; }
 					.header p { margin: 0; padding: 0; }
 					.header p.subject { text-indent: 1em; }
+					.header p.controls { text-indent: 1em; }
 					.error { color: #900 }
 				}
 			end
@@ -196,7 +199,7 @@ else 2 end, mb.name.downcase] }
 				head do
 					title 'Webmail'
 					link :rel => 'stylesheet', :type => 'text/css', 
-							:href => '/styles.css', :media => 'screen'
+							:href => '/styles.css'
 				end
 				body do
 					#h1.header { a 'Mail?', :href => R(Index) }
