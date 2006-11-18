@@ -194,6 +194,23 @@ module CampingAtMailbox
 				end
 			end
 		end
+
+		class MoveMessage < R '/mailbox/(.*)/messages/(\d+)/move'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				get_mailbox_list
+				render :movemessage
+			end
+			def post(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				imap.uid_copy(@uid, input.folder)
+				imap.uid_store(@uid, '+FLAGS', [:Deleted])
+				redirect Mailbox, mailbox
+			end
+		end
+
 	end
 
 	module Views
@@ -234,6 +251,20 @@ module CampingAtMailbox
 				p 'Are you sure you want to delete this message?'
 				input :type => 'hidden', :name => 'deletemessage', :value => @uid
 				input :type => 'submit', :value => 'Confirm'
+			end
+		end
+
+		def movemessage
+			form :action => R(MoveMessage, @mailbox, @uid), :method => 'post' do
+				ul do
+					@mailboxes.each do |mb|
+						li do 
+							input :type => 'radio', :name => 'folder', :value => mb.name
+							text mb.name
+						end
+					end
+				end
+				input :type => 'submit', :value => 'Move message'
 			end
 		end
 
@@ -299,6 +330,7 @@ module CampingAtMailbox
 				p.controls do
 					a('header', :href => R(Header, @mailbox, @uid)) 
 					a('delete', :href => R(DeleteMessage, @mailbox, @uid))
+					a('move', :href => R(MoveMessage, @mailbox, @uid))
 				end
 			end
 
