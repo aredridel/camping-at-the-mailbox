@@ -106,8 +106,8 @@ module CampingAtMailbox
 			def get(mb)
 				@mailbox = mb
 				imap.select(mb)
-				@total = imap.responses["EXISTS"][-1].to_i
-				@unread = imap.responses["RECENT"][-1].to_i
+				@uidlist = imap.uid_search('UNDELETED')
+				@total = @uidlist.length
 				if @input.page.to_i > 0 
 					@page = @input.page.to_i
 					start = (@page - 1) * 10 + 1
@@ -122,7 +122,7 @@ module CampingAtMailbox
 					end
 				end
 				if @total > 0 
-					@messages = imap.fetch(start..fin, ['FLAGS', 'ENVELOPE', 'UID'])
+					@messages = imap.uid_fetch(@uidlist[start..fin], ['FLAGS', 'ENVELOPE', 'UID'])
 				end
 				render :mailbox
 			end
