@@ -5,7 +5,6 @@
 	- metaid
 
 - TMail
-- RubyMail
 
 - stdlib
 	- net/imap

@@ -3,7 +3,6 @@
 require 'camping'
 require 'net/imap'
 require 'tmail'
-require 'rmail/utils'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
@@ -348,15 +347,24 @@ module CampingAtMailbox
 					end
 				end
 			else
-				if message['Content-Type'].main_type == 'text' and message['Content-Type'].sub_type == 'plain'
+				if message['Content-Type'].main_type == 'text'
 					if message.transfer_encoding == 'quoted-printable'
-						body = RMail::Utils.quoted_printable_decode(message.body)
+						body = message.body.unpack("M*")[0]
+					elsif message.transfer_encoding == 'base64'
+						body = message.body.unpack("m*")[0]
 					else
 						body = message.body
 					end
 					# FIXME: handle character set recoding here
-					pre do
-						body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+					if message['Content-Type'].sub_type == 'plain'
+						pre do
+							body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+						end
+					else
+						p "Okay, so this really should be handled better -- FIXME"
+						pre do
+							body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+						end
 					end
 				else
 					p "This part (of type #{message['Content-Type']}) cannot be displayed
