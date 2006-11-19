@@ -104,7 +104,7 @@ module Net
     class ResponseParser # :nodoc:
       def body
         @lex_state = EXPR_DATA
-        @partnamestack ||= []
+        @partids ||= []
         token = lookahead
         if token.symbol == T_NIL
           shift_token
@@ -127,12 +127,12 @@ module Net
         mtype, msubtype = media_type
         token = lookahead
         if token.symbol == T_RPAR
-          return BodyTypeBasic.new(mtype, msubtype, @partnamestack.join('.'))
+          return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'))
         end
         match(T_SPACE)
         param, content_id, desc, enc, size = body_fields
         md5, disposition, language, extension = body_ext_1part
-        return BodyTypeBasic.new(mtype, msubtype, @partnamestack.join('.'),
+        return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'),
                                  param, content_id,
                                  desc, enc, size,
                                  md5, disposition, language, extension)
@@ -145,7 +145,7 @@ module Net
         match(T_SPACE)
         lines = number
         md5, disposition, language, extension = body_ext_1part
-        return BodyTypeText.new(mtype, msubtype, @partnamestack.join('.'),
+        return BodyTypeText.new(mtype, msubtype, @partids.join('.'),
                                 param, content_id,
                                 desc, enc, size,
                                 lines,
@@ -153,7 +153,6 @@ module Net
       end
 
       def body_type_msg
-        @partnamestack.push 1
         mtype, msubtype = media_type
         match(T_SPACE)
         param, content_id, desc, enc, size = body_fields
@@ -164,8 +163,7 @@ module Net
         match(T_SPACE)
         lines = number
         md5, disposition, language, extension = body_ext_1part
-        @partnamestack.pop
-        return BodyTypeMessage.new(mtype, msubtype, @partnamestack.join('.'),
+        return BodyTypeMessage.new(mtype, msubtype, @partids.join('.'),
                                    param, content_id,
                                    desc, enc, size,
                                    env, b, lines,
@@ -174,9 +172,9 @@ module Net
 
       def body_type_mpart
         parts = []
-        @partnamestack.push 0
+        @partids.push 0
         while true
-          @partnamestack.push @partnamestack.pop + 1
+          @partids.push @partids.pop + 1
           token = lookahead
           if token.symbol == T_SPACE
             shift_token
@@ -187,8 +185,8 @@ module Net
         mtype = "MULTIPART"
         msubtype = case_insensitive_string
         param, disposition, language, extension = body_ext_mpart
-        @partnamestack.pop
-        return BodyTypeMultipart.new(mtype, msubtype, @partnamestack.join('.'), parts,
+        @partids.pop
+        return BodyTypeMultipart.new(mtype, msubtype, @partids.join('.'), parts,
                                      param, disposition, language,
                                      extension)
       end
