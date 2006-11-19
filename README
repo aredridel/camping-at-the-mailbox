@@ -8,4 +8,10 @@
 	- net/imap
 	- yaml
 
+== Features
+
+- Manipulating messages:
+	- Read (including attachments)
+	- Move to folders
+	- Delete
 
