@@ -189,6 +189,9 @@ module CampingAtMailbox
 			end
 		end
 
+		# There is a scroll tacked to the wall with an arrow. You take it 
+		# down and read it.
+		#
 		class Message < R '/mailbox/(.*)/messages/(\d+)'
 			def get(mailbox, uid)
 				@mailbox = mailbox
@@ -199,6 +202,9 @@ module CampingAtMailbox
 			end
 		end
 		
+		# An inner piece of parchment flutters to the ground as you unroll
+		# the scroll. You pick it up and read it.
+		#
 		class MessagePart < R '/mailbox/(.*)/messages/(\d+)/parts/(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
@@ -219,6 +225,8 @@ module CampingAtMailbox
 			end
 		end
 		
+		# There seems to be another object tied to the arrow.
+		#
 		class Attachment < R '/mailbox/(.*)/messages/(\d+)/attachment/(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
@@ -230,6 +238,8 @@ module CampingAtMailbox
 			end
 		end
 
+		# You examine the scroll and arrow for signs of its origin.
+		#
 		class Header < R '/mailbox/(.*)/messages/(\d+)/headers'
 			def get(mailbox, uid)
 				@mailbox = mailbox
@@ -240,12 +250,21 @@ module CampingAtMailbox
 			end
 		end
 
+		# There is a large, red button here. 
+		#
 		class DeleteMessage < R '/mailbox/(.*)/messages/(\d+)/delete'
+
+			# You press it to see what it does.
+			#
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
 				render :deleteq
 			end
+
+			# There is a loud klaxon and the scroll you were holding in your 
+			# hand disappears
+			#
 			def post(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -258,6 +277,10 @@ module CampingAtMailbox
 			end
 		end
 
+		# You realize that there's a better place to keep the scroll than
+		# wrapped around an arrow on the outside of the building. You move
+		# it to a safer location.
+		#
 		class MoveMessage < R '/mailbox/(.*)/messages/(\d+)/move'
 			def get(mailbox, uid)
 				@mailbox = mailbox
