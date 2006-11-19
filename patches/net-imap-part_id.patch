@@ -1,5 +1,5 @@
 --- /usr/lib/ruby/1.8/net/imap.rb	2006-11-15 20:30:03.000000000 -0700
-+++ net/imap2.rb	2006-11-19 09:50:46.000000000 -0700
++++ net/imap.rb	2006-11-19 09:50:46.000000000 -0700
 @@ -1722,21 +1722,21 @@
      # disposition:: Returns a Net::IMAP::ContentDisposition object giving
      #               the content disposition.
