@@ -379,7 +379,7 @@ module CampingAtMailbox
 			Pager(Mailbox, @page, @total, 10, @mailbox)
 		end
 
-		def _messageheader(envelope)
+		def _messageheader(envelope, controls = false)
 			div.header do 
 				p do 
 					text "From " 
@@ -407,12 +407,22 @@ module CampingAtMailbox
 					end
 				end if envelope.bcc
 				p.subject envelope.subject
+				_messagecontrols if controls
 			end
 		end
 
 		def message	
-			_messageheader(envelope)
+			_messageheader(envelope, true)
 			_message(@structure)
+		end
+
+		def _messagecontrols
+			p.controls do
+				a 'delete', :href => R(DeleteMessage, @mailbox, uid)
+				a 'move', :href => R(MoveMessage, @mailbox, uid)
+				a 'reply'#, :href => R(ReplyToMessage, @mailbox, uid)
+				a 'forward'#, :href => R(ForwardMessage, @mailbox, uid)
+			end
 		end
 
 		def _messagepartheader(part)
