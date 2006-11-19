@@ -25,6 +25,16 @@ module CampingAtMailbox
 		def residentsession
 			$residentsession[@cookies.camping_sid]
 		end
+
+		def decode(structure)
+			case structure.encoding
+			when 'BASE64'
+				@parts[structure.part_id].unpack('m*')
+			when 'QUOTED-PRINTABLE'
+				@parts[structure.part_id].unpack('M*')
+			else @parts[structure.part_id]
+			end
+		end
 		
 		def get_mailbox_list
 			@mailboxes = imap.lsub('', '*')
@@ -193,19 +203,27 @@ module CampingAtMailbox
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				@part = part
 				imap.select(mailbox)
 				fetch_structure
-				render :messagepart
+				@part = @structureindex[part]
+				case @part
+				when Net::IMAP::BodyTypeMultipart
+					render :messagepart
+				when Net::IMAP::BodyTypeMessage
+					render :messagepart
+				else
+					$stderr.puts @part.encoding
+					@headers['Content-Type'] = @part.media_type.downcase << '/' << @part.subtype.downcase
+					@body = decode(@part)
+				end
 			end
 		end
 		
-		class Attachment < R '/mailbox/(.*)/messages/(\d+)/attachment/(.*)/([^/]*)'
-			def get(mailbox, uid, part, disposition)
+		class Attachment < R '/mailbox/(.*)/messages/(\d+)/attachment/(.*)'
+			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@part = part
-				@disposition = disposition
 				imap.select(mailbox)
 				fetch_structure
 				render :attachment
@@ -432,7 +450,7 @@ module CampingAtMailbox
 					end
 				end
 			elsif Net::IMAP::BodyTypeText === structure
-				pre @parts[structure.part_id]
+				pre decode(structure)
 			else
 				_messagepartheader(structure)
 				_attachment(structure)
@@ -442,8 +460,8 @@ module CampingAtMailbox
 		def _attachment(part)
 			p do
 				# FIXME -- change options depending on whether it's a browser-viewable type or not
-				a('view', :href =>  R(Attachment, @mailbox, @uid, part.part_id, 'view'))
-				a('download', :href => R(Attachment, @mailbox, @uid, part.part_id, 'download'))
+				a('view', :href =>  R(MessagePart, @mailbox, @uid, part.part_id))
+				a('download', :href => R(Attachment, @mailbox, @uid, part.part_id))
 			end
 		end
 
@@ -454,13 +472,12 @@ module CampingAtMailbox
 		end
 
 		def messagepart
-			part = @structureindex[@part]
-			_messagepartheader part if Net::IMAP::BodyTypeMessage === part
-			_message part
+			_messagepartheader @part if Net::IMAP::BodyTypeMessage === @part
+			_message @part
 		end
 
 		def attachment
-			p @disposition
+			p @part.inspect
 		end
 
 	end
