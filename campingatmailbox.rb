@@ -477,27 +477,41 @@ module CampingAtMailbox
 		end
 
 		def _message(structure, depth = 0, maxdepth = 1)
-			if Net::IMAP::BodyTypeMessage === structure
+			case structure
+			when Net::IMAP::BodyTypeMessage
 				div.message do
 					_messageheader(structure.envelope)
 					_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth
 				end
-			elsif structure.multipart?
-				structure.parts.each_with_index do |part,i|
-					div.message do
-						if !part.disposition or part.disposition.dsp_type == 'INLINE'
-							if depth <= maxdepth
-								_message(part, depth + 1, maxdepth)
+			when Net::IMAP::BodyTypeMultipart
+				if structure.subtype == 'ALTERNATIVE'
+					_message(structure.parts.sort_by do |part|
+						[
+							if part.media_type == 'TEXT': 0 else 1 end,
+							case part.media_type
+							when 'PLAIN': 0 
+							when 'HTML': 1
+							else 2
+							end
+						]
+					end.first, depth + 1, maxdepth)
+				else
+					structure.parts.each_with_index do |part,i|
+						div.message do
+							if !part.disposition or part.disposition.dsp_type == 'INLINE'
+								if depth <= maxdepth
+									_message(part, depth + 1, maxdepth)
+								else
+									_messagepartheader(part)
+								end
 							else
 								_messagepartheader(part)
+								_attachment(part)
 							end
-						else
-							_messagepartheader(part)
-							_attachment(part)
 						end
 					end
 				end
-			elsif Net::IMAP::BodyTypeText === structure
+			when Net::IMAP::BodyTypeText
 				pre decode(structure)
 			else
 				_messagepartheader(structure)
