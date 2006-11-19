@@ -28,38 +28,44 @@
 				((NIL NIL "bob" "domain.dom")) 
 				NIL NIL NIL "<1066976111.4263.74.camel@localhost>"
 			) 
-			(("text" "plain" 
-				("CHARSET" "US-ASCII") NIL NIL "8bit" 193 3 NIL NIL NIL)
-			("message" "rfc822" NIL NIL "At the risk of sounding negative, no. --Leela" "7bit" 697 
-				("23 Oct 2003 23:09:05 -0700" "the original message" 
-				(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-				(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-				(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-				((NIL NIL "bob" "domain.dom"))
-				NIL NIL NIL "<1066975745.4263.70.camel@localhost>") 
-				(("text" "plain" 
-					("CHARSET" "US-ASCII") NIL NIL "8bit" 78 3 NIL NIL NIL)
-					("application" "x-gzip" 
-						("NAME" "foo.gz") NIL NIL "base64" 58 NIL 
+			(
+				("text" "plain" 
+					("CHARSET" "US-ASCII") NIL NIL "8bit" 193 3 NIL NIL NIL)
+				("message" "rfc822" NIL NIL "At the risk of sounding negative, no. --Leela" "7bit" 697 
+					("23 Oct 2003 23:09:05 -0700" "the original message" 
+						(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+						(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+						(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+						((NIL NIL "bob" "domain.dom"))
+						NIL NIL NIL "<1066975745.4263.70.camel@localhost>") 
+					(
+						("text" "plain" 
+							("CHARSET" "US-ASCII") NIL NIL "8bit" 78 3 NIL NIL NIL)
+						("application" "x-gzip" 
+							("NAME" "foo.gz")
+							NIL NIL "base64" 58 NIL 
 							("attachment" 
 								("filename" "foo.gz")) 
-						NIL)
-					"mixed" 
-					("boundary" "=-XFYecI7w+0shpolXq8bb") NIL NIL)
-				25 NIL 
-				("inline" NIL) NIL)
-			"mixed" 
-			("boundary" "=-9Brg7LoMERBrIDtMRose") NIL NIL) 
+							NIL)
+						"mixed" 
+						("boundary" "=-XFYecI7w+0shpolXq8bb")
+						NIL NIL)
+					25 NIL 
+					("inline" NIL)
+					NIL)
+				"mixed" 
+				("boundary" "=-9Brg7LoMERBrIDtMRose")
+			NIL NIL) 
 		49 NIL 
 		("inline" NIL) 
 	NIL)
 	("message" "rfc822" NIL NIL "Dirt doesn't need luck! --Professor" "7bit" 817 
 		("23 Oct 2003 22:40:49 -0700" "this message JUST contains an attachment" 
-		(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-		(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-		(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
-		((NIL NIL "bob" "domain.dom")) 
-		NIL NIL NIL "<1066974048.4264.62.camel@localhost>") 
+			(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+			(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+			(("Ryan Finnie" NIL "rfinnie" "domain.dom")) 
+			((NIL NIL "bob" "domain.dom")) 
+			NIL NIL NIL "<1066974048.4264.62.camel@localhost>") 
 		("application" "x-gzip" 
 			("NAME" "blah.gz") NIL "Attachment has identical content to above foo.gz" "base64" 306 NIL 
 			("attachment" ("filename" "blah.gz")) 
