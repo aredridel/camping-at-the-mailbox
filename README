@@ -4,8 +4,6 @@
 	- markaby
 	- metaid
 
-- TMail
-
 - stdlib
 	- net/imap
 	- yaml

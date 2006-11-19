@@ -3,7 +3,6 @@
 require 'camping'
 require 'net/imap'
 require 'net/imap2'
-require 'tmail'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
@@ -34,6 +33,11 @@ module CampingAtMailbox
 				@mailboxes = imap.list('', '*')
 			end
 			@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1 else 2 end, mb.name.downcase] }
+		end
+
+		def fetch_structure
+			@message = imap.uid_fetch(@uid, ['ENVELOPE', 'BODYSTRUCTURE'])[0]
+			@structure = @message.attr['BODYSTRUCTURE']
 		end
 		
 		def Pager(controller, current, total, n, *args)
@@ -161,9 +165,30 @@ module CampingAtMailbox
 				@mailbox = mailbox
 				@uid = uid.to_i
 				imap.select(mailbox)
-				@message = imap.uid_fetch(@uid, ['ENVELOPE', 'RFC822.TEXT', 'RFC822'])[0]
-				@parsed = TMail::Mail.parse(@message.attr['RFC822'])
+				fetch_structure
+				@parts = {}
+				if @structure.multipart?
+					@structure.parts.each_with_index do |part,i|
+						# FIXME -- handle image parts specially, so display can be linked and fetch performed then
+						if !part.disposition or part.disposition.dsp_type == 'INLINE'
+							@parts[part.part_id] = imap.uid_fetch(@uid, "BODY[#{part.part_id}]")[0].attr["BODY[#{part.part_id}]"]
+						end
+					end
+				else
+					@parts[1] = imap.uid_fetch(@uid, 'BODY[TEXT]')[0].attr['BODY[TEXT]']
+				end
 				render :message
+			end
+		end
+		
+		class MessagePart < R '/mailbox/(.*)/messages/(\d+)/parts/(.*)'
+			def get(mailbox, uid, part)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				@part = part
+				imap.select(mailbox)
+				fetch_structure
+				render :messagepart
 			end
 		end
 
@@ -334,7 +359,26 @@ module CampingAtMailbox
 				end
 			end
 
-			_message(@parsed)
+			if @structure.multipart?
+				@structure.parts.each_with_index do |part,i|
+					if !part.disposition or part.disposition.dsp_type == 'INLINE'
+						# FIXME -- handle message types here, not just text
+						if Net::IMAP::BodyTypeText === part
+							pre @parts[part.part_id]
+						else
+							p { a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) }
+							p part.inspect
+						end
+					else
+						p { a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) }
+					end
+				end
+			else
+				pre @parts[@structure.part_id]
+			end
+	
+			#p @structure.inspect
+			#_message(@parsed)
 		end
 
 		def _message(message)
@@ -378,6 +422,11 @@ module CampingAtMailbox
 			pre do
 				@header.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 			end
+		end
+
+		def messagepart
+			p "You want the #{@part} part from message #{@uid} in the #{@mailbox}
+folder?"
 		end
 
 	end
