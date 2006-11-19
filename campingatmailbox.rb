@@ -2,6 +2,7 @@
 
 require 'camping'
 require 'net/imap'
+require 'net/imap2'
 require 'tmail'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
