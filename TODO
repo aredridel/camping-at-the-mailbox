@@ -1,5 +1,4 @@
 - improve MIME all around
-	- handle attachments
 	- for text/plain:
 		- wrap at a reasonable width (only for flowed format?)
 		- recognize and link URLs
@@ -12,8 +11,7 @@
 		- make a frame and display there
 		- link to download
 
-	- use the MIME torture test
-	- properly decode transfer encodings
+	- improve attachments
 
 - address book
 
