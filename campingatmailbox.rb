@@ -38,6 +38,23 @@ module CampingAtMailbox
 		def fetch_structure
 			@message = imap.uid_fetch(@uid, ['ENVELOPE', 'BODYSTRUCTURE'])[0]
 			@structure = @message.attr['BODYSTRUCTURE']
+			@parts = Hash.new do |h,k|
+				h[k] = imap.uid_fetch(@uid, "BODY[#{k}]")[0].attr["BODY[#{k}]"]
+			end
+			@structureindex = {}
+			index_structure(@structure)
+		end
+
+		def index_structure(structure)
+			@structureindex[structure.part_id] = structure
+			case structure
+			when Net::IMAP::BodyTypeMultipart
+				structure.parts.each do |part|
+					index_structure part
+				end
+			when Net::IMAP::BodyTypeMessage
+				index_structure structure.body
+			end
 		end
 		
 		def Pager(controller, current, total, n, *args)
@@ -50,7 +67,7 @@ module CampingAtMailbox
 						a(page, :href => R(controller, *args) + "?page=#{page}")
 					end
 				end
-			end
+			end if pages > 1
 		end
 	end
 
@@ -155,7 +172,9 @@ module CampingAtMailbox
 					.header p { margin: 0; padding: 0; }
 					.header p.subject { text-indent: 1em; }
 					.header p.controls { text-indent: 1em; }
+					p.messagepartheader { margin-bottom: 0;}
 					.error { color: #900 }
+					.message { margin-left: 2em; }
 				}
 			end
 		end
@@ -166,17 +185,6 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				imap.select(mailbox)
 				fetch_structure
-				@parts = {}
-				if @structure.multipart?
-					@structure.parts.each_with_index do |part,i|
-						# FIXME -- handle image parts specially, so display can be linked and fetch performed then
-						if !part.disposition or part.disposition.dsp_type == 'INLINE'
-							@parts[part.part_id] = imap.uid_fetch(@uid, "BODY[#{part.part_id}]")[0].attr["BODY[#{part.part_id}]"]
-						end
-					end
-				else
-					@parts[1] = imap.uid_fetch(@uid, 'BODY[TEXT]')[0].attr['BODY[TEXT]']
-				end
 				render :message
 			end
 		end
@@ -189,6 +197,18 @@ module CampingAtMailbox
 				imap.select(mailbox)
 				fetch_structure
 				render :messagepart
+			end
+		end
+		
+		class Attachment < R '/mailbox/(.*)/messages/(\d+)/attachment/(.*)/([^/]*)'
+			def get(mailbox, uid, part, disposition)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				@part = part
+				@disposition = disposition
+				imap.select(mailbox)
+				fetch_structure
+				render :attachment
 			end
 		end
 
@@ -341,7 +361,7 @@ module CampingAtMailbox
 			Pager(Mailbox, @page, @total, 10, @mailbox)
 		end
 
-		def message	
+		def _messageheader(envelope)
 			div.header do 
 				p do 
 					text "From " 
@@ -349,71 +369,81 @@ module CampingAtMailbox
 						cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
 					end
 					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
-				end
-				p.subject envelope.subject
-				p.controls do
-					a('header', :href => R(Header, @mailbox, @uid)) 
-					a('delete', :href => R(DeleteMessage, @mailbox, @uid))
-					a('move', :href => R(MoveMessage, @mailbox, @uid))
-				end
-			end
-
-			if @structure.multipart?
-				@structure.parts.each_with_index do |part,i|
-					if !part.disposition or part.disposition.dsp_type == 'INLINE'
-						# FIXME -- handle message types here, not just text
-						if Net::IMAP::BodyTypeText === part
-							pre @parts[part.part_id]
-						else
-							p { a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) }
-							p part.inspect
-						end
-					else
-						p { a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) }
+				end if envelope.from
+				p do
+					text "To "
+					envelope.to.each do |t|
+						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
 					end
-				end
-			else
-				pre @parts[@structure.part_id]
+				end if envelope.to
+				p do
+					text "Carbon copies to "
+					envelope.cc.each do |t|
+						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+					end
+				end if envelope.cc
+				p do
+					text "Also copies to "
+					envelope.bcc.each do |t|
+						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+					end
+				end if envelope.bcc
+				p.subject envelope.subject
 			end
-	
-			#p @structure.inspect
-			#_message(@parsed)
 		end
 
-		def _message(message)
-			if message.multipart?
-				p "Multipart message:"
-				if message['Content-Type'].sub_type == 'alternative'
-					_message(message.parts[0]) # FIXME: there's a better way to pick than the first thing.
-				else
-					message.parts.each do |part|
-						_message(part)
+		def message	
+			_messageheader(envelope)
+			_message(@structure)
+		end
+
+		def _messagepartheader(part)
+				p.messagepartheader do
+					a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) 
+					text case part
+						when Net::IMAP::BodyTypeMessage
+							'(included message)'
+						else
+							(if part.disposition && part.disposition.dsp_type != 'INLINE' then '(attachment) ' else '' end ) + 'type ' + part.media_type.downcase + '/' + part.subtype.downcase
+					end + ' '
+					small part.description if part.respond_to? :description
+				end
+		end
+
+		def _message(structure, depth = 0, maxdepth = 1)
+			if Net::IMAP::BodyTypeMessage === structure
+				div.message do
+					_messageheader(structure.envelope)
+					_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth
+				end
+			elsif structure.multipart?
+				structure.parts.each_with_index do |part,i|
+					div.message do
+						if !part.disposition or part.disposition.dsp_type == 'INLINE'
+							if depth <= maxdepth
+								_message(part, depth + 1, maxdepth)
+							else
+								_messagepartheader(part)
+							end
+						else
+							_messagepartheader(part)
+							_attachment(part)
+						end
 					end
 				end
+			elsif Net::IMAP::BodyTypeText === structure
+				pre @parts[structure.part_id]
 			else
-				if message['Content-Type'].main_type == 'text'
-					if message.transfer_encoding == 'quoted-printable'
-						body = message.body.unpack("M*")[0]
-					elsif message.transfer_encoding == 'base64'
-						body = message.body.unpack("m*")[0]
-					else
-						body = message.body
-					end
-					# FIXME: handle character set recoding here
-					if message['Content-Type'].sub_type == 'plain'
-						pre do
-							body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
-						end
-					else
-						p "Okay, so this really should be handled better -- FIXME"
-						pre do
-							body.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
-						end
-					end
-				else
-					p "This part (of type #{message['Content-Type']}) cannot be displayed
-(attachments aren't supported yet)"
-				end
+				_messagepartheader(structure)
+				_attachment(structure)
+			end
+		end
+
+		def _attachment(part)
+			p do
+				# FIXME -- change options depending on whether it's a browser-viewable type or not
+				a('view', :href =>  R(Attachment, @mailbox, @uid, part.part_id, 'view'))
+				a('download', :href => R(Attachment, @mailbox, @uid, part.part_id, 'download'))
 			end
 		end
 
@@ -424,8 +454,13 @@ module CampingAtMailbox
 		end
 
 		def messagepart
-			p "You want the #{@part} part from message #{@uid} in the #{@mailbox}
-folder?"
+			part = @structureindex[@part]
+			_messagepartheader part if Net::IMAP::BodyTypeMessage === part
+			_message part
+		end
+
+		def attachment
+			p @disposition
 		end
 
 	end
