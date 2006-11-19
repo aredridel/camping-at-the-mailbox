@@ -311,7 +311,6 @@ module CampingAtMailbox
 			end
 			table do
 				@messages.each do |message|
-					$stderr.puts message.inspect
 					env = message.attr['ENVELOPE']
 					flags = message.attr['FLAGS']
 					tr(:class => 'header') do
