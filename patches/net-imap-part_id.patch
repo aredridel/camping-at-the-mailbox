@@ -1,0 +1,204 @@
+--- /usr/lib/ruby/1.8/net/imap.rb	2006-11-15 20:30:03.000000000 -0700
++++ net/imap2.rb	2006-11-19 09:50:46.000000000 -0700
+@@ -1722,21 +1722,21 @@
+     # disposition:: Returns a Net::IMAP::ContentDisposition object giving
+     #               the content disposition.
+     # 
+     # language:: Returns a string or an array of strings giving the body
+     #            language value as defined in [LANGUAGE-TAGS].
+     # 
+     # extension:: Returns extension data.
+     # 
+     # multipart?:: Returns false.
+     # 
+-    class BodyTypeBasic < Struct.new(:media_type, :subtype,
++    class BodyTypeBasic < Struct.new(:media_type, :subtype, :part_id,
+                                      :param, :content_id,
+                                      :description, :encoding, :size,
+                                      :md5, :disposition, :language,
+                                      :extension)
+       def multipart?
+         return false
+       end
+ 
+       # Obsolete: use +subtype+ instead.  Calling this will
+       # generate a warning message to +stderr+, then return 
+@@ -1749,21 +1749,21 @@
+     end
+ 
+     # Net::IMAP::BodyTypeText represents TEXT body structures of messages.
+     # 
+     # ==== Fields:
+     # 
+     # lines:: Returns the size of the body in text lines.
+     # 
+     # And Net::IMAP::BodyTypeText has all fields of Net::IMAP::BodyTypeBasic.
+     # 
+-    class BodyTypeText < Struct.new(:media_type, :subtype,
++    class BodyTypeText < Struct.new(:media_type, :subtype, :part_id,
+                                     :param, :content_id,
+                                     :description, :encoding, :size,
+                                     :lines,
+                                     :md5, :disposition, :language,
+                                     :extension)
+       def multipart?
+         return false
+       end
+ 
+       # Obsolete: use +subtype+ instead.  Calling this will
+@@ -1779,21 +1779,21 @@
+     # Net::IMAP::BodyTypeMessage represents MESSAGE/RFC822 body structures of messages.
+     # 
+     # ==== Fields:
+     # 
+     # envelope:: Returns a Net::IMAP::Envelope giving the envelope structure.
+     # 
+     # body:: Returns an object giving the body structure.
+     # 
+     # And Net::IMAP::BodyTypeMessage has all methods of Net::IMAP::BodyTypeText.
+     #
+-    class BodyTypeMessage < Struct.new(:media_type, :subtype,
++    class BodyTypeMessage < Struct.new(:media_type, :subtype, :part_id,
+                                        :param, :content_id,
+                                        :description, :encoding, :size,
+                                        :envelope, :body, :lines,
+                                        :md5, :disposition, :language,
+                                        :extension)
+       def multipart?
+         return false
+       end
+ 
+       # Obsolete: use +subtype+ instead.  Calling this will
+@@ -1822,21 +1822,21 @@
+     # disposition:: Returns a Net::IMAP::ContentDisposition object giving
+     #               the content disposition.
+     # 
+     # language:: Returns a string or an array of strings giving the body
+     #            language value as defined in [LANGUAGE-TAGS].
+     # 
+     # extension:: Returns extension data.
+     # 
+     # multipart?:: Returns true.
+     # 
+-    class BodyTypeMultipart < Struct.new(:media_type, :subtype,
++    class BodyTypeMultipart < Struct.new(:media_type, :subtype, :part_id,
+                                          :parts,
+                                          :param, :disposition, :language,
+                                          :extension)
+       def multipart?
+         return true
+       end
+ 
+       # Obsolete: use +subtype+ instead.  Calling this will
+       # generate a warning message to +stderr+, then return 
+       # the value of +subtype+.
+@@ -2131,20 +2131,21 @@
+           name.concat(token.value)
+           shift_token
+         end
+         match(T_SPACE)
+         data = nstring
+         return name, data
+       end
+ 
+       def body
+         @lex_state = EXPR_DATA
++        @partnamestack ||= []
+         token = lookahead
+         if token.symbol == T_NIL
+           shift_token
+           result = nil
+         else
+           match(T_LPAR)
+           token = lookahead
+           if token.symbol == T_LPAR
+             result = body_type_mpart
+           else
+@@ -2165,77 +2166,82 @@
+           return body_type_msg
+         else
+           return body_type_basic
+         end
+       end
+ 
+       def body_type_basic
+         mtype, msubtype = media_type
+         token = lookahead
+         if token.symbol == T_RPAR
+-          return BodyTypeBasic.new(mtype, msubtype)
++          return BodyTypeBasic.new(mtype, msubtype, @partnamestack.join('.'))
+         end
+         match(T_SPACE)
+         param, content_id, desc, enc, size = body_fields
+         md5, disposition, language, extension = body_ext_1part
+-        return BodyTypeBasic.new(mtype, msubtype,
++        return BodyTypeBasic.new(mtype, msubtype, @partnamestack.join('.'),
+                                  param, content_id,
+                                  desc, enc, size,
+                                  md5, disposition, language, extension)
+       end
+ 
+       def body_type_text
+         mtype, msubtype = media_type
+         match(T_SPACE)
+         param, content_id, desc, enc, size = body_fields
+         match(T_SPACE)
+         lines = number
+         md5, disposition, language, extension = body_ext_1part
+-        return BodyTypeText.new(mtype, msubtype,
++        return BodyTypeText.new(mtype, msubtype, @partnamestack.join('.'),
+                                 param, content_id,
+                                 desc, enc, size,
+                                 lines,
+                                 md5, disposition, language, extension)
+       end
+ 
+       def body_type_msg
++        @partnamestack.push 1
+         mtype, msubtype = media_type
+         match(T_SPACE)
+         param, content_id, desc, enc, size = body_fields
+         match(T_SPACE)
+         env = envelope
+         match(T_SPACE)
+         b = body
+         match(T_SPACE)
+         lines = number
+         md5, disposition, language, extension = body_ext_1part
+-        return BodyTypeMessage.new(mtype, msubtype,
++        @partnamestack.pop
++        return BodyTypeMessage.new(mtype, msubtype, @partnamestack.join('.'),
+                                    param, content_id,
+                                    desc, enc, size,
+                                    env, b, lines,
+                                    md5, disposition, language, extension)
+       end
+ 
+       def body_type_mpart
+         parts = []
++        @partnamestack.push 0
+         while true
++          @partnamestack.push @partnamestack.pop + 1
+           token = lookahead
+           if token.symbol == T_SPACE
+             shift_token
+             break
+           end
+           parts.push(body)
+         end
+         mtype = "MULTIPART"
+         msubtype = case_insensitive_string
+         param, disposition, language, extension = body_ext_mpart
+-        return BodyTypeMultipart.new(mtype, msubtype, parts,
++        @partnamestack.pop
++        return BodyTypeMultipart.new(mtype, msubtype, @partnamestack.join('.'), parts,
+                                      param, disposition, language,
+                                      extension)
+       end
+ 
+       def media_type
+         mtype = case_insensitive_string
+         match(T_SPACE)
+         msubtype = case_insensitive_string
+         return mtype, msubtype
+       end
