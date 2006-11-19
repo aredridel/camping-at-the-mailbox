@@ -13,6 +13,8 @@
 
 	- improve attachments
 
+	- handle multipart/related, at least in the html+images case
+
 - address book
 
 
