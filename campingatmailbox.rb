@@ -88,7 +88,13 @@ module CampingAtMailbox
 			end
 		end
 
+		# You see a locked door.
+		#
 		class Login < R '/login'
+			
+			# The key opens the door. You slip inside. 
+			# 
+			# See Mailboxes
 			def post
 				residentsession[:imap] = Net::IMAP.new($config['server'])
 				residentsession[:pinger] = Thread.new do 
@@ -111,6 +117,8 @@ module CampingAtMailbox
 				render :login
 			end
 
+			# You slip your key in the lock.
+			#
 			def get
 				render :login
 			end
@@ -120,6 +128,9 @@ module CampingAtMailbox
 		# Which door do you open?
 		#
 		class Mailboxes < R '/mailboxes'
+
+			# You open a Mailbox 
+			#
 			def get
 				get_mailbox_list
 				render :mailboxes
@@ -134,6 +145,10 @@ module CampingAtMailbox
 		# Off in the distance, a faint 'whoopwhoop' noise can be heard.
 		#
 		class Mailbox < R '/mailbox/(.+)/messages/'
+			
+			# Suddenly, there's a whizthunk! and you see an arrow embed itself 
+			# in the wall next to your head. There seems to be a Message attached.
+			#
 			def get(mb)
 				@mailbox = mb
 				imap.select(mb)
