@@ -127,12 +127,12 @@ module Net
         mtype, msubtype = media_type
         token = lookahead
         if token.symbol == T_RPAR
-          return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'))
+          return BodyTypeBasic.new(mtype, msubtype, part_id)
         end
         match(T_SPACE)
         param, content_id, desc, enc, size = body_fields
         md5, disposition, language, extension = body_ext_1part
-        return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'),
+        return BodyTypeBasic.new(mtype, msubtype, part_id,
                                  param, content_id,
                                  desc, enc, size,
                                  md5, disposition, language, extension)
@@ -145,7 +145,7 @@ module Net
         match(T_SPACE)
         lines = number
         md5, disposition, language, extension = body_ext_1part
-        return BodyTypeText.new(mtype, msubtype, @partids.join('.'),
+        return BodyTypeText.new(mtype, msubtype, part_id,
                                 param, content_id,
                                 desc, enc, size,
                                 lines,
@@ -163,7 +163,7 @@ module Net
         match(T_SPACE)
         lines = number
         md5, disposition, language, extension = body_ext_1part
-        return BodyTypeMessage.new(mtype, msubtype, @partids.join('.'),
+        return BodyTypeMessage.new(mtype, msubtype, part_id,
                                    param, content_id,
                                    desc, enc, size,
                                    env, b, lines,
@@ -186,10 +186,18 @@ module Net
         msubtype = case_insensitive_string
         param, disposition, language, extension = body_ext_mpart
         @partids.pop
-        return BodyTypeMultipart.new(mtype, msubtype, @partids.join('.'), parts,
+        return BodyTypeMultipart.new(mtype, msubtype, part_id, parts,
                                      param, disposition, language,
                                      extension)
       end
+
+			def part_id
+				if @partids.empty?
+					1
+				else
+					@partids.join('.')
+				end
+			end
     end
   end
 end

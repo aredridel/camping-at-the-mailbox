@@ -1,5 +1,5 @@
 --- /usr/lib/ruby/1.8/net/imap.rb	2006-11-15 20:30:03.000000000 -0700
-+++ net/imap.rb	2006-11-19 15:06:23.000000000 -0700
++++ net/imap.rb	2006-11-19 15:31:41.000000000 -0700
 @@ -1729,7 +1729,7 @@
      # 
      # multipart?:: Returns false.
@@ -36,15 +36,25 @@
                                           :parts,
                                           :param, :disposition, :language,
                                           :extension)
-@@ -2138,6 +2138,7 @@
+@@ -2136,8 +2136,17 @@
+         return name, data
+       end
  
++			def part_id
++				if @partids.empty?
++					1
++				else
++					@partids.join('.')
++				end
++			end
++
        def body
          @lex_state = EXPR_DATA
 +        @partids ||= []
          token = lookahead
          if token.symbol == T_NIL
            shift_token
-@@ -2146,7 +2147,9 @@
+@@ -2146,7 +2155,9 @@
            match(T_LPAR)
            token = lookahead
            if token.symbol == T_LPAR
@@ -54,40 +64,40 @@
            else
              result = body_type_1part
            end
-@@ -2172,12 +2175,12 @@
+@@ -2172,12 +2183,12 @@
          mtype, msubtype = media_type
          token = lookahead
          if token.symbol == T_RPAR
 -          return BodyTypeBasic.new(mtype, msubtype)
-+          return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'))
++          return BodyTypeBasic.new(mtype, msubtype, part_id)
          end
          match(T_SPACE)
          param, content_id, desc, enc, size = body_fields
          md5, disposition, language, extension = body_ext_1part
 -        return BodyTypeBasic.new(mtype, msubtype,
-+        return BodyTypeBasic.new(mtype, msubtype, @partids.join('.'),
++        return BodyTypeBasic.new(mtype, msubtype, part_id,
                                   param, content_id,
                                   desc, enc, size,
                                   md5, disposition, language, extension)
-@@ -2190,7 +2193,7 @@
+@@ -2190,7 +2201,7 @@
          match(T_SPACE)
          lines = number
          md5, disposition, language, extension = body_ext_1part
 -        return BodyTypeText.new(mtype, msubtype,
-+        return BodyTypeText.new(mtype, msubtype, @partids.join('.'),
++        return BodyTypeText.new(mtype, msubtype, part_id,
                                  param, content_id,
                                  desc, enc, size,
                                  lines,
-@@ -2208,7 +2211,7 @@
+@@ -2208,7 +2219,7 @@
          match(T_SPACE)
          lines = number
          md5, disposition, language, extension = body_ext_1part
 -        return BodyTypeMessage.new(mtype, msubtype,
-+        return BodyTypeMessage.new(mtype, msubtype, @partids.join('.'),
++        return BodyTypeMessage.new(mtype, msubtype, part_id,
                                     param, content_id,
                                     desc, enc, size,
                                     env, b, lines,
-@@ -2224,11 +2227,12 @@
+@@ -2224,11 +2235,12 @@
              break
            end
            parts.push(body)
@@ -97,7 +107,7 @@
          msubtype = case_insensitive_string
          param, disposition, language, extension = body_ext_mpart
 -        return BodyTypeMultipart.new(mtype, msubtype, parts,
-+        return BodyTypeMultipart.new(mtype, msubtype, @partids.join('.'), parts,
++        return BodyTypeMultipart.new(mtype, msubtype, part_id, parts,
                                       param, disposition, language,
                                       extension)
        end
