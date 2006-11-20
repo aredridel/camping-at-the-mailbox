@@ -146,7 +146,7 @@ module CampingAtMailbox
 		#
 		# Off in the distance, a faint 'whoopwhoop' noise can be heard.
 		#
-		class Mailbox < R '/mailbox/(.+)/messages/'
+		class Mailbox < R '/mailboxes/(.+)/messages/'
 			
 			# Suddenly, there's a whizthunk! and you see an arrow embed itself 
 			# in the wall next to your head. There seems to be a Message attached.
@@ -220,7 +220,7 @@ module CampingAtMailbox
 		# There is a scroll tacked to the wall with an arrow. You take it 
 		# down and read it.
 		#
-		class Message < R '/mailbox/(.*)/messages/(\d+)'
+		class Message < R '/mailboxes/(.*)/messages/(\d+)'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -233,7 +233,7 @@ module CampingAtMailbox
 		# An inner piece of parchment flutters to the ground as you unroll
 		# the scroll. You pick it up and read it.
 		#
-		class MessagePart < R '/mailbox/(.*)/messages/(\d+)/parts/(.*)'
+		class MessagePart < R '/mailboxes/(.*)/messages/(\d+)/parts/(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -254,7 +254,7 @@ module CampingAtMailbox
 		
 		# There seems to be another object tied to the arrow.
 		#
-		class Attachment < R '/mailbox/(.*)/messages/(\d+)/attachment/(.*)'
+		class Attachment < R '/mailboxes/(.*)/messages/(\d+)/attachment/(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -267,7 +267,7 @@ module CampingAtMailbox
 
 		# You examine the scroll and arrow for signs of its origin.
 		#
-		class Header < R '/mailbox/(.*)/messages/(\d+)/headers'
+		class Header < R '/mailboxes/(.*)/messages/(\d+)/headers'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -279,7 +279,7 @@ module CampingAtMailbox
 
 		# There is a large, red button here. 
 		#
-		class DeleteMessage < R '/mailbox/(.*)/messages/(\d+)/delete'
+		class DeleteMessage < R '/mailboxes/(.*)/messages/(\d+)/delete'
 
 			# You press it to see what it does.
 			#
@@ -308,7 +308,7 @@ module CampingAtMailbox
 		# wrapped around an arrow on the outside of the building. You move
 		# it to a safer location.
 		#
-		class MoveMessage < R '/mailbox/(.*)/messages/(\d+)/move'
+		class MoveMessage < R '/mailboxes/(.*)/messages/(\d+)/move'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
