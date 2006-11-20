@@ -15,6 +15,10 @@
 
 	- handle multipart/related, at least in the html+images case
 
+	- handle character sets in headers
+
+	- handle non-UTF-8 character sets in general
+
 - address book
 
 
