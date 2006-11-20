@@ -31,7 +31,7 @@ module CampingAtMailbox
 			when 'BASE64'
 				@parts[structure.part_id].unpack('m*')
 			when 'QUOTED-PRINTABLE'
-				@parts[structure.part_id].unpack('M*')
+				@parts[structure.part_id].gsub(/\r\n/, "\n").unpack('M*')
 			else @parts[structure.part_id]
 			end
 		end
