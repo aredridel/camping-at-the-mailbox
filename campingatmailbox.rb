@@ -200,6 +200,7 @@ module CampingAtMailbox
 					p.messagepartheader { margin-bottom: 0;}
 					.error { color: #900 }
 					.message { margin-left: 2em; }
+					.fin { text-indent: 2in; }
 				}
 			end
 		end
@@ -452,6 +453,7 @@ module CampingAtMailbox
 		def message	
 			_messageheader(envelope, true)
 			_message(@structure)
+			p.fin '❧'
 		end
 
 		def _messagecontrols
