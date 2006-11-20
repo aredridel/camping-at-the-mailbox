@@ -104,8 +104,9 @@ module CampingAtMailbox
 					end
 				end
 				caps = imap.capability
+				residentsession[:usesort] = if caps.include? "SORT": true else false end
 				begin
-					if /AUTH=LOGIN/ === caps
+					if caps.include? 'AUTH=LOGIN'
 						imap.authenticate('LOGIN', input.username, input.password)
 					else
 						imap.login(input.username, input.password)
@@ -153,7 +154,11 @@ module CampingAtMailbox
 			def get(mb)
 				@mailbox = mb
 				imap.select(mb)
-				@uidlist = imap.uid_search('UNDELETED')
+				if residentsession[:usesort]
+					@uidlist = imap.uid_sort(['REVERSE', 'ARRIVAL'], 'UNDELETED', 'UTF-8')
+				else
+					@uidlist = imap.uid_search('UNDELETED')
+				end
 				@total = @uidlist.length
 				if @input.page.to_i > 0 
 					@page = @input.page.to_i
@@ -169,7 +174,12 @@ module CampingAtMailbox
 					end
 				end
 				if @total > 0 
-					@messages = imap.uid_fetch(@uidlist[start..fin], ['FLAGS', 'ENVELOPE', 'UID'])
+					# UGLY
+					@messageset = @uidlist[start..fin]
+					@messages = imap.uid_fetch(@messageset, ['FLAGS', 'ENVELOPE', 'UID'])
+					if residentsession[:usesort]
+						@messages = @messages.sort_by { |e| @messageset.index(e.attr['UID']) }
+					end
 				end
 				render :mailbox
 			end
