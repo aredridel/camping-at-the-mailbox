@@ -68,7 +68,7 @@ module CampingAtMailbox
 		end
 		
 		def Pager(controller, current, total, n, *args)
-			pages = total / n + (total % n == 0 ? 0 : 1)
+			pages = (total) / n + ((total)  % n == 0 ? 0 : 1)
 			p do
 				(1..pages).map do |page|
 					if page == current
@@ -156,11 +156,11 @@ module CampingAtMailbox
 				@total = @uidlist.length
 				if @input.page.to_i > 0 
 					@page = @input.page.to_i
-					start = (@page - 1) * 10 + 1
+					start = (@page - 1) * 10
 					fin = if @page * 10 > @total then @total else @page * 10 end
 				else
 					@page = 1
-					start = 1
+					start = 0
 					fin = if @total > 10
 						10
 					else
