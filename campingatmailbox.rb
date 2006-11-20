@@ -245,7 +245,6 @@ module CampingAtMailbox
 				when Net::IMAP::BodyTypeMessage
 					render :messagepart
 				else
-					$stderr.puts @part.encoding
 					@headers['Content-Type'] = @part.media_type.downcase << '/' << @part.subtype.downcase
 					@body = decode(@part)
 				end
