@@ -409,7 +409,7 @@ module CampingAtMailbox
 								end
 							end
 							p.subject do
-								a(env.subject, :href => R(Message, @mailbox, message.attr['UID']))
+								a(if !env.subject or env.subject.strip.empty? then 'no subject' else env.subject end, :href => R(Message, @mailbox, message.attr['UID']))
 							end 
 						end
 					end
