@@ -212,6 +212,7 @@ module CampingAtMailbox
 					.error { color: #900 }
 					.message { margin-left: 2em; }
 					.fin { text-indent: 2in; }
+					ul.folderlist { list-style: none outside; padding: 0;}
 				}
 			end
 		end
@@ -368,11 +369,13 @@ module CampingAtMailbox
 
 		def movemessage
 			form :action => R(MoveMessage, @mailbox, @uid), :method => 'post' do
-				ul do
+				ul.folderlist do
 					@mailboxes.each do |mb|
 						li do 
-							input :type => 'radio', :name => 'folder', :value => mb.name
-							text mb.name
+							label do
+								input :type => 'radio', :name => 'folder', :value => mb.name
+								text mb.name
+							end
 						end
 					end
 				end
