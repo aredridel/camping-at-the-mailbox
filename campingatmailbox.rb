@@ -460,6 +460,7 @@ module CampingAtMailbox
 			p.controls do
 				a 'delete', :href => R(DeleteMessage, @mailbox, uid)
 				a 'move', :href => R(MoveMessage, @mailbox, uid)
+				a 'headers', :href => R(Header, @mailbox, uid)
 				a 'reply'#, :href => R(ReplyToMessage, @mailbox, uid)
 				a 'forward'#, :href => R(ForwardMessage, @mailbox, uid)
 			end
