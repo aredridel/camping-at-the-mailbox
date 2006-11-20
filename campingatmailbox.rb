@@ -110,6 +110,7 @@ module CampingAtMailbox
 					else
 						imap.login(input.username, input.password)
 					end
+					imap.subscribe('INBOX')
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
 					@error = 'wrong user name or password'
