@@ -7,15 +7,26 @@ require 'net/imap2'
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
 
-Flagnames = { :Seen => 'read', :Answered => 'replied to' }
+$cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
+
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
 	include Camping::Session
 
+	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
+
 	module Helpers
 		def imap
 			residentsession[:imap]
+		end
+
+		def select_mailbox(mb)
+			if residentsession[:selectedmbox] != mb
+				imap.select(mb)
+				residentsession[:selectedmbox] = mb
+				residentsession.delete :uidlist
+			end
 		end
 
 		def envelope
@@ -96,22 +107,24 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				residentsession[:imap] = Net::IMAP.new($config['server'])
-				residentsession[:pinger] = Thread.new do 
-					while !residentsession[:imap].disconnected? and residentsession[:imap]
-						residentsession[:imap].noop
-						sleep 60
-					end
-				end
-				caps = imap.capability
-				residentsession[:usesort] = if caps.include? "SORT": true else false end
+				imap_connection = Net::IMAP.new($config['server'])
+				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
-						imap.authenticate('LOGIN', input.username, input.password)
+						imap_connection.authenticate('LOGIN', input.username, input.password)
 					else
-						imap.login(input.username, input.password)
+						imap_connection.login(input.username, input.password)
+					end
+					residentsession.clear
+					residentsession[:imap] = imap_connection
+					residentsession[:pinger] = Thread.new do 
+						while residentsession[:imap] and !imap.disconnected?
+							imap.noop
+							sleep 60
+						end
 					end
 					imap.subscribe('INBOX')
+					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
 					@error = 'wrong user name or password'
@@ -153,13 +166,15 @@ module CampingAtMailbox
 			#
 			def get(mb)
 				@mailbox = mb
-				imap.select(mb)
-				if residentsession[:usesort]
-					@uidlist = imap.uid_sort(['REVERSE', 'ARRIVAL'], 'UNDELETED', 'UTF-8')
-				else
-					@uidlist = imap.uid_search('UNDELETED')
+				select_mailbox(mb)
+				if !residentsession[:uidlist]
+					if residentsession[:usesort]
+						residentsession[:uidlist] = imap.uid_sort(['REVERSE', 'ARRIVAL'], 'UNDELETED', 'UTF-8')
+					else
+						residentsession[:uidlist] = imap.uid_search('UNDELETED')
+					end
 				end
-				@total = @uidlist.length
+				@total = residentsession[:uidlist].length
 				if @input.page.to_i > 0 
 					@page = @input.page.to_i
 					start = (@page - 1) * 10
@@ -175,7 +190,7 @@ module CampingAtMailbox
 				end
 				if @total > 0 
 					# UGLY
-					@messageset = @uidlist[start..fin]
+					@messageset = residentsession[:uidlist][start..fin]
 					@messages = imap.uid_fetch(@messageset, ['FLAGS', 'ENVELOPE', 'UID'])
 					if residentsession[:usesort]
 						@messages = @messages.sort_by { |e| @messageset.index(e.attr['UID']) }
@@ -224,7 +239,7 @@ module CampingAtMailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				imap.select(mailbox)
+				select_mailbox(mailbox)
 				fetch_structure
 				render :message
 			end
@@ -237,7 +252,7 @@ module CampingAtMailbox
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				imap.select(mailbox)
+				select_mailbox(mailbox)
 				fetch_structure
 				@part = @structureindex[part]
 				case @part
@@ -259,7 +274,7 @@ module CampingAtMailbox
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@part = part
-				imap.select(mailbox)
+				select_mailbox(mailbox)
 				fetch_structure
 				render :attachment
 			end
@@ -271,7 +286,7 @@ module CampingAtMailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				imap.select(mailbox)
+				select_mailbox(mailbox)
 				@header = imap.uid_fetch(@uid, ['RFC822.HEADER'])[0].attr['RFC822.HEADER']
 				render :header
 			end
@@ -297,6 +312,7 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				if input.deletemessage == uid
 					imap.uid_store(@uid, '+FLAGS', [:Deleted])
+					residentsession[:uidlist].delete(@uid)
 					redirect Mailbox, mailbox
 				else
 					render :deleteq
