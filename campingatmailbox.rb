@@ -348,6 +348,7 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				imap.uid_copy(@uid, input.folder)
 				imap.uid_store(@uid, '+FLAGS', [:Deleted])
+				residentsession[:uidlist].delete(@uid)
 				redirect Mailbox, mailbox
 			end
 		end
