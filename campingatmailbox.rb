@@ -80,12 +80,24 @@ module CampingAtMailbox
 		
 		def Pager(controller, current, total, n, *args)
 			pages = (total) / n + ((total)  % n == 0 ? 0 : 1)
+			prior = current - 1
+			nxt = current + 1
+			p "Page #{current} of #{pages}"
+			p do
+				if prior > 0
+					a("Previous #{n}", :href => R(controller, *args) << "?page=#{prior}")
+				end
+				if nxt <= pages
+					a("Next #{n}", :href => R(controller, *args) << "?page=#{nxt}")
+				end
+			end
+			return
 			p do
 				(1..pages).map do |page|
 					if page == current
 						text page
 					else
-						a(page, :href => R(controller, *args) + "?page=#{page}")
+						a(page, :href => R(controller, *args) << "?page=#{page}")
 					end
 				end
 			end if pages > 1
