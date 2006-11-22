@@ -21,5 +21,13 @@
 
 - address book
 
+- handle sending a message in the session-invalid case
+	- log in first
+	- then continue to sending the message
+
+- handle IMAP disconnect errors gracefully
+
+- reply
+- forward
 
 
