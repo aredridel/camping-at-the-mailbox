@@ -147,7 +147,7 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				imap_connection = Net::IMAP.new($config['imapserver'])
+				imap_connection = Net::IMAP.new($config['imaphost'])
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
