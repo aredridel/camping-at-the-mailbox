@@ -391,6 +391,34 @@ module CampingAtMailbox
 			end
 		end
 
+		class Reply < R '/mailboxes/(.*)/messages/(\d+)/reply'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				select_mailbox(mailbox)
+				fetch_structure
+				# FIXME: reply with body too
+				@body = 'quoted message goes here'
+				@to = @message.attr['ENVELOPE'].from.join(', ')
+				@subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
+				render :compose
+			end
+		end
+
+		class Forward < R '/mailboxes/(.*)/messages/(\d+)/forward'
+			def get(mailbox, uid)
+				@mailbox = mailbox
+				@uid = uid.to_i
+				select_mailbox(mailbox)
+				fetch_structure
+				# FIXME: forward body too
+				@body = 'quoted message goes here'
+				@to = @message.attr['ENVELOPE'].from.join(', ')
+				@subject = 'Fw: ' << (@message.attr['ENVELOPE'].subject || '')
+				render :compose
+			end
+		end
+
 		class Send < R('/send')
 			def post
 				message = %{From: #{@state['username']}
@@ -562,8 +590,8 @@ Date: #{Time.now.rfc822}
 				a 'delete', :href => R(DeleteMessage, @mailbox, uid)
 				a 'move', :href => R(MoveMessage, @mailbox, uid)
 				a 'headers', :href => R(Header, @mailbox, uid)
-				a 'reply'#, :href => R(ReplyToMessage, @mailbox, uid)
-				a 'forward'#, :href => R(ForwardMessage, @mailbox, uid)
+				a 'reply', :href => R(Reply, @mailbox, uid)
+				a 'forward', :href => R(Forward, @mailbox, uid)
 			end
 		end
 
@@ -649,13 +677,13 @@ Date: #{Time.now.rfc822}
 		def compose
 			form :action => R(Send), :method => 'post' do
 				p do
-					label { text 'Subject '; input :type=> 'text', :name => 'subject' } 
+					label { text 'To '; input :type=> 'text', :name => 'to', :value => @to }
 				end
 				p do
-					label { text 'To '; input :type=> 'text', :name => 'to' }
+					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @subject } 
 				end
 				p do
-					label { text 'Body '; textarea.body(:name => 'body') { } }
+					label { text 'Body '; textarea.body(:name => 'body') { text @body } }
 				end
 				p do
 					input :type => 'submit', :value => 'Send' 
