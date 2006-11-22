@@ -353,6 +353,20 @@ module CampingAtMailbox
 			end
 		end
 
+		# You'll have to write their mother a note.
+		#
+		class Compose < R('/compose/')
+			def get
+				render :compose
+			end
+		end
+
+		class Send < R('/send')
+			def post
+				
+			end
+		end
+
 	end
 
 	module Views
@@ -423,6 +437,9 @@ module CampingAtMailbox
 		end
 
 		def mailbox
+			p.controls do
+				a 'compose', :href => R(Compose)
+			end
 			h1 "#{@mailbox} (#{@total} total)"
 			if @total == 0
 				p "No messages"
@@ -585,6 +602,23 @@ module CampingAtMailbox
 
 		def attachment
 			p @part.inspect
+		end
+
+		def compose
+			form :action => R(Send), :method => 'post' do
+				p do
+					label { text 'Subject '; input :type=> 'text', :name => 'subject' } 
+				end
+				p do
+					label { text 'To '; input :type=> 'text', :name => 'to' }
+				end
+				p do
+					label { text 'Body '; textarea.body(:name => 'body') { } }
+				end
+				p do
+					input :type => 'submit', :value => 'Send' 
+				end
+			end
 		end
 
 	end
