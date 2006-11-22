@@ -1,2 +1,5 @@
-server: mail.theinternetco.net
+imaphost: mail.theinternetco.net
+smtphost: mail.theinternetco.net
+smtpport: 587
 banner: Username guest@theinternetco.net password Aeco3ahr
+

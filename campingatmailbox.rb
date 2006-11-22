@@ -3,6 +3,7 @@
 require 'camping'
 require 'net/imap'
 require 'net/imap2'
+require 'net/smtp'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
@@ -119,7 +120,7 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				imap_connection = Net::IMAP.new($config['server'])
+				imap_connection = Net::IMAP.new($config['imapserver'])
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
@@ -135,6 +136,8 @@ module CampingAtMailbox
 							sleep 60
 						end
 					end
+					@state['username'] = input.username
+					@state['password'] = input.password
 					imap.subscribe('INBOX')
 					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
@@ -363,7 +366,19 @@ module CampingAtMailbox
 
 		class Send < R('/send')
 			def post
-				
+				message = %{From: #{@state['username']}
+To: #{input.to}
+Subject: #{input.subject}
+Date: #{Time.now.rfc822}
+
+#{input.body}
+}
+
+				Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
+					'localhost', 
+					@state['username'], @state['password'], :plain) do |smtp|
+					smtp.send_message message, @state['username'], input.to
+				end
 			end
 		end
 
