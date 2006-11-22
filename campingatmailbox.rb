@@ -10,6 +10,33 @@ $config = YAML.load(File.read('mailbox.conf'))
 
 $cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
 
+class Net::IMAP
+	def idle
+		cmd = "IDLE"
+		synchronize do
+			tag = generate_tag
+			put_string(tag + " " + cmd)
+			put_string(CRLF)
+		end
+	end
+	def done
+		cmd = "DONE"
+		synchronize do
+			put_string(cmd)
+			put_string(CRLF)
+		end
+	end
+end
+
+class Net::IMAP::Address
+	def to_s
+		if name
+			"#{name} <#{mailbox}@#{host}>"
+		else
+			"#{mailbox}@#{host}"
+		end	
+	end
+end
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
