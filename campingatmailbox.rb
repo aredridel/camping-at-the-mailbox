@@ -49,6 +49,25 @@ module CampingAtMailbox
 			residentsession[:imap]
 		end
 
+		def fetch_body_quoted
+			# FIXME: reply with body too
+			part = if @structure.parts
+				@structure.parts.sort_by { |part| 
+					[
+						if part.media_type == 'TEXT': 0 else 1 end,
+						case part.media_type
+						when 'PLAIN': 0 
+						when 'HTML': 1
+						else 2
+						end
+					]
+				}.first
+			else
+				@structure
+			end
+			@body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+		end
+
 		def select_mailbox(mb)
 			imap.noop
 			if residentsession[:selectedmbox] != mb
@@ -416,22 +435,7 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				select_mailbox(mailbox)
 				fetch_structure
-				# FIXME: reply with body too
-				part = if @structure.parts
-					@structure.parts.sort_by { |part| 
-						[
-							if part.media_type == 'TEXT': 0 else 1 end,
-							case part.media_type
-							when 'PLAIN': 0 
-							when 'HTML': 1
-							else 2
-							end
-						]
-					}.first
-				else
-					@structure
-				end
-				@body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+				fetch_body_quoted
 
 				@to = @message.attr['ENVELOPE'].from.join(', ')
 				@subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
@@ -445,9 +449,7 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				select_mailbox(mailbox)
 				fetch_structure
-				# FIXME: forward body too
-				@body = 'quoted message goes here'
-				@to = @message.attr['ENVELOPE'].from.join(', ')
+				fetch_body_quoted
 				@subject = 'Fw: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
