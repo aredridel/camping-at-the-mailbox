@@ -50,6 +50,7 @@ module CampingAtMailbox
 		end
 
 		def select_mailbox(mb)
+			imap.noop
 			if residentsession[:selectedmbox] != mb
 				imap.select(mb)
 				residentsession[:selectedmbox] = mb
@@ -63,6 +64,18 @@ module CampingAtMailbox
 
 		def residentsession
 			$residentsession[@cookies.camping_sid]
+		end
+
+		def imap_response_handler(resp)
+			case resp
+			when Net::IMAP::UntaggedResponse
+				case resp.name
+				when 'EXISTS'
+					residentsession.delete :uidlist
+				when 'EXPUNGE'
+					residentsession.delete :uidlist
+				end
+			end
 		end
 
 		def decode(structure)
@@ -165,6 +178,7 @@ module CampingAtMailbox
 					end
 					@state['username'] = input.username
 					@state['password'] = input.password
+					imap.add_response_handler { |r| imap_response_handler(r) }
 					imap.subscribe('INBOX')
 					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
