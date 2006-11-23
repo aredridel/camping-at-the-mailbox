@@ -23,7 +23,10 @@
 
 - handle IMAP disconnect errors gracefully
 
-- reply
 - forward
+	- quote on forward
+	- optionally include attachments
+
+- handle sending to addresses of Name <mb@host> form (Parse!)
 
 
