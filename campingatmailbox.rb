@@ -658,7 +658,9 @@ Date: #{Time.now.rfc822}
 					end
 				end
 			when Net::IMAP::BodyTypeText
-				pre WordWrapper.wrap(decode(structure))
+				pre do
+					capture { WordWrapper.wrap(decode(structure)).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
+				end
 			else
 				_messagepartheader(structure)
 				_attachment(structure)

@@ -1,8 +1,4 @@
 - improve MIME all around
-	- for text/plain:
-		- wrap at a reasonable width (only for flowed format?)
-		- recognize and link URLs
-
 	- for text/html
 		- sanitize
 		- make loading images optional
