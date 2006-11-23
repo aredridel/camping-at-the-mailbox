@@ -417,7 +417,22 @@ module CampingAtMailbox
 				select_mailbox(mailbox)
 				fetch_structure
 				# FIXME: reply with body too
-				@body = 'quoted message goes here'
+				part = if @structure.parts
+					@structure.parts.sort_by { |part| 
+						[
+							if part.media_type == 'TEXT': 0 else 1 end,
+							case part.media_type
+							when 'PLAIN': 0 
+							when 'HTML': 1
+							else 2
+							end
+						]
+					}.first
+				else
+					@structure
+				end
+				@body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+
 				@to = @message.attr['ENVELOPE'].from.join(', ')
 				@subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
