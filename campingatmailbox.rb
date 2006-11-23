@@ -70,6 +70,9 @@ module CampingAtMailbox
 			case resp
 			when Net::IMAP::UntaggedResponse
 				case resp.name
+				# FIXME: update the uidlist, rather than invalidating it. Easier
+				# said than done, considering that the server knows the order 
+				# and we don't based on resp.
 				when 'EXISTS'
 					residentsession.delete :uidlist
 				when 'EXPUNGE'
