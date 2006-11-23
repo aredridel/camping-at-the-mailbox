@@ -280,6 +280,8 @@ module CampingAtMailbox
 					.header p.subject { text-indent: 1em; }
 					.header p.controls { text-indent: 1em; }
 					p.messagepartheader { margin-bottom: 0;}
+					form.compose textarea { width: 100%; height: 4in }
+					form.compose input[type='text'] { width: 100%; }
 					.error { color: #900 }
 					.message { margin-left: 2em; }
 					.fin { text-indent: 2in; }
@@ -691,7 +693,7 @@ Date: #{Time.now.rfc822}
 		end
 
 		def compose
-			form :action => R(Send), :method => 'post' do
+			form.compose :action => R(Send), :method => 'post' do
 				p do
 					label { text 'To '; input :type=> 'text', :name => 'to', :value => @to }
 				end
