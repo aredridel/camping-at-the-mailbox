@@ -9,6 +9,9 @@
 	- net/smtp
 	- yaml
 
+- ruby-dbi
+	- dbd-sqlite3
+
 == Features
 
 - Manipulating messages:

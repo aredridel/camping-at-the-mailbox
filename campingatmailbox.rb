@@ -4,9 +4,11 @@ require 'camping'
 require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
+require 'dbi'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 $config = YAML.load(File.read('mailbox.conf'))
+$db = DBI.connect($config['database'])
 
 $cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
 
@@ -473,9 +475,76 @@ Date: #{Time.now.rfc822}
 			end
 		end
 
+		class Addresses < R '/addresses'
+			def get
+				fetch_addresses
+				@errors = []
+				render :addresses
+			end
+
+			def post
+				@errors = []
+				fetch_addresses
+				if /@/ === input.address
+					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['username'])
+					redirect R(Addresses)
+				else
+					@errors << "That didn't look like an email address -- it's gotta at least have an @"
+					render :addresses
+				end
+			end
+			
+			def fetch_addresses
+				@addresses = []
+				st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
+				rh = $db.execute(st, @state['username'])
+				rh.fetch do |name,address|
+					@addresses << [name,address]
+				end
+			end
+		end
+
+		class DeleteAddress < R '/addresses/delete/(.*)'
+			def get(address)
+				@address = address
+				render :deleteaddressq
+			end
+
+			def post(address)
+				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['username'], address)
+				redirect R(Addresses)
+			end
+		end
+
 	end
 
+
 	module Views
+		def addresses
+			h1 'Addresses'
+			table.addresses do
+				@addresses.each do |name,address|
+					tr do
+						td name
+						td address
+						td { a('delete', :href => R(DeleteAddress, address)) } 
+					end
+				end
+			
+				@errors.each do |e|
+					tr.error { td(:colspan => 2) { e } }
+				end
+
+				form :action => R(Addresses), :method => 'post' do
+					tr do
+						td { input :name => 'name', :type => 'text' }
+						td { input :name => 'address', :type => 'text' }
+						td { input :type => 'submit', :value => 'Add' }
+					end
+				end
+			end
+		end
+
 		def layout
 			html do
 				head do
@@ -516,6 +585,14 @@ Date: #{Time.now.rfc822}
 			end
 		end
 
+		def deleteaddressq
+			form :action => R(DeleteAddress, @address), :method => 'post' do
+				p "Are you sure you want to delete #{@address} from your address book?"
+				input :type => 'hidden', :name => 'deletemessage', :value => @uid
+				input :type => 'submit', :value => 'Confirm'
+			end
+		end
+
 		def movemessage
 			form :action => R(MoveMessage, @mailbox, @uid), :method => 'post' do
 				ul.folderlist do
@@ -533,6 +610,7 @@ Date: #{Time.now.rfc822}
 		end
 
 		def mailboxes
+			p { a('Address Book', :href => R(Addresses)) }
 			ul do
 				@mailboxes.each do |mb|
 					li do
