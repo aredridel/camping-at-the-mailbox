@@ -326,6 +326,14 @@ module CampingAtMailbox
 					.message { margin-left: 2em; }
 					.fin { text-indent: 2in; }
 					ul.folderlist { list-style: none outside; padding: 0;}
+					.autocomplete { background-color: #FFF; 
+						color: #573; border: 1px solid #888; margin: 0px; padding: 0px; }
+					.autocomplete ul { list-style-type:none; margin:0px; padding:0px; }
+					.autocomplete ul li.selected { background-color: #ffb;}
+					.autocomplete ul li {
+						list-style-type:none; display:block; 
+						margin:0; padding:2px; height:32px; cursor:pointer;
+					 }
 				}
 			end
 		end
@@ -831,7 +839,7 @@ Date: #{Time.now.rfc822}
 			form.compose :action => R(Send), :method => 'post' do
 				p do
 					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @to }
-					div :id => 'to_autocomplete'
+					div.autocomplete :id => 'to_autocomplete' do end
 					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "/addresses/autocomplete", { tokens: ',' }); } }
 				end
 				p do
