@@ -38,6 +38,21 @@ class Net::IMAP::Address
 			"#{mailbox}@#{host}"
 		end	
 	end
+
+	def self.parse address
+		if /(.*) <(.*)@(.*)>/ === address
+			self.new $1, nil, $2, $3
+		elsif /(.*)@(.*) \((.*)\)/ === address
+			self.new $3, nil, $1, $2
+		else
+			parts = address.split('@')
+			self.new nil, nil, parts[0], parts[1]
+		end
+	end
+
+	def email
+		"#{mailbox}@#{host}"
+	end
 end
 
 Camping.goes :CampingAtMailbox
@@ -500,7 +515,7 @@ Date: #{Time.now.rfc822}
 				Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
 					'localhost', 
 					@state['username'], @state['password'], :plain) do |smtp|
-					smtp.send_message message, @state['username'], input.to
+					smtp.send_message message, @state['username'], Net::IMAP::Address.parse(input.to).email
 				end
 			end
 		end
