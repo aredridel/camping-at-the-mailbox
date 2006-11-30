@@ -45,10 +45,17 @@ module CampingAtMailbox
 	include Camping::Session
 
 	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
+	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
 
 	module Helpers
 		def imap
 			residentsession[:imap]
+		end
+
+		def serve(file)
+			extension = file.split('.').last
+			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
+			@body = File.read(file)
 		end
 
 		def fetch_body_quoted
@@ -68,6 +75,15 @@ module CampingAtMailbox
 				@structure
 			end
 			@body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+		end
+
+		def fetch_addresses
+			@addresses = []
+			st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
+			rh = $db.execute(st, @state['username'])
+			rh.fetch do |name,address|
+				@addresses << [name,address]
+			end
 		end
 
 		def select_mailbox(mb)
@@ -314,6 +330,12 @@ module CampingAtMailbox
 			end
 		end
 
+		class Scripts < R '/(.*).js'
+			def get(file)
+				serve file+'.js'
+			end
+		end
+
 		# There is a scroll tacked to the wall with an arrow. You take it 
 		# down and read it.
 		#
@@ -494,13 +516,13 @@ Date: #{Time.now.rfc822}
 				end
 			end
 			
-			def fetch_addresses
-				@addresses = []
-				st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
-				rh = $db.execute(st, @state['username'])
-				rh.fetch do |name,address|
-					@addresses << [name,address]
-				end
+		end
+
+		class AddressesAutocomplete < R '/addresses/autocomplete'
+			def post
+				fetch_addresses
+				@pattern = input.to || input.cc
+				render :_addresses
 			end
 		end
 
@@ -545,12 +567,22 @@ Date: #{Time.now.rfc822}
 			end
 		end
 
+		def _addresses
+			ul do
+				@addresses.select { |e| /^#{@pattern}/i === e[0] }.each do |e|
+					li (if e[0] then "#{e[0]} <#{e[1]}>" else e[1] end)
+				end
+			end
+		end
+
 		def layout
 			html do
 				head do
 					title 'Webmail'
 					link :rel => 'stylesheet', :type => 'text/css', 
 							:href => '/styles.css'
+					script :src => R(Scripts, 'prototype'), :type => 'text/javascript'
+					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript'
 				end
 				body do
 					#h1.header { a 'Mail?', :href => R(Index) }
@@ -798,7 +830,9 @@ Date: #{Time.now.rfc822}
 		def compose
 			form.compose :action => R(Send), :method => 'post' do
 				p do
-					label { text 'To '; input :type=> 'text', :name => 'to', :value => @to }
+					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @to }
+					div :id => 'to_autocomplete'
+					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "/addresses/autocomplete", { tokens: ',' }); } }
 				end
 				p do
 					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @subject } 
