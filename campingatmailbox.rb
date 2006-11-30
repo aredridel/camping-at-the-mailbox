@@ -184,7 +184,7 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				imap_connection = Net::IMAP.new($config['imaphost'])
+				imap_connection = Net::IMAP.new($config['imaphost'] || input.imaphost)
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
@@ -572,6 +572,11 @@ Date: #{Time.now.rfc822}
 
 				label 'Password', :for => 'password'; br
 				input :name => 'password', :type => 'password'; br
+
+				if !$config['imaphost']
+					label 'Mail Server', :for => 'imaphost'; br
+					input :name => 'imaphost', :type => 'text'; br
+				end
 
 				input :type => 'submit', :name => 'login', :value => 'Login'
 			end
