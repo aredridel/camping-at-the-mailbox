@@ -55,7 +55,7 @@ module CampingAtMailbox
 		def serve(file)
 			extension = file.split('.').last
 			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
-			@body = File.read(file)
+			@body = File.open(file, 'r')
 		end
 
 		def fetch_body_quoted
