@@ -15,8 +15,6 @@
 
 	- handle non-UTF-8 character sets in general
 
-- address book
-
 - handle sending a message in the session-invalid case
 	- log in first
 	- then continue to sending the message
