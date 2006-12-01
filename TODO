@@ -24,8 +24,6 @@
 - forward
 	- optionally include attachments
 
-- handle sending to addresses of Name <mb@host> form (Parse!)
-
 - Ability to send attachments
 
 - copy sent messages to Sent folder

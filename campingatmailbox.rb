@@ -532,7 +532,9 @@ Date: #{Time.now.rfc822}
 				Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
 					'localhost', 
 					@state['username'], @state['password'], :plain) do |smtp|
-					smtp.send_message message, @state['username'], Net::IMAP::Address.parse(input.to).email
+						@results = input.to.split(',').map do |a|
+							smtp.send_message message, @state['username'], Net::IMAP::Address.parse(a.strip).email
+						end
 				end
 				
 				render :sent
