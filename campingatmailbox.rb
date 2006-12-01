@@ -145,7 +145,7 @@ module CampingAtMailbox
 		def get_mailbox_list
 			@mailboxes = imap.lsub('', '*')
 			 if !@mailboxes
-				@error = 'You have no folders subscribed, showing everything'
+				@error = 'You have no mailboxes subscribed, showing everything'
 				@mailboxes = imap.list('', '*')
 			end
 			@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1 else 2 end, mb.name.downcase] }
