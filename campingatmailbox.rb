@@ -614,7 +614,7 @@ Date: #{Time.now.rfc822}
 		def _addresses
 			ul do
 				@addresses.select { |e| /^#{@pattern}/i === e[0] }.each do |e|
-					li (if e[0] then "#{e[0]} <#{e[1]}>" else e[1] end)
+					li(if e[0] then "#{e[0]} <#{e[1]}>" else e[1] end)
 				end
 			end
 		end
