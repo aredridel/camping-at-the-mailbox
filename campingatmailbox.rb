@@ -501,6 +501,24 @@ module CampingAtMailbox
 			end
 		end
 
+		class CreateMailbox < R '/newmailbox'
+			def get
+				render :createmailbox
+			end
+
+			def post
+				@mailbox = input.mailbox
+				begin
+					imap.create(input.mailbox)
+					imap.subscribe(input.mailbox)
+				rescue Net::IMAP::NoResponseError => @error
+					render :createmailbox
+				else
+					redirect R(Mailboxes)
+				end
+			end
+		end
+
 		class Send < R('/send')
 			def post
 				message = %{From: #{@state['username']}
@@ -635,6 +653,14 @@ Date: #{Time.now.rfc822}
 				input :type => 'submit', :name => 'login', :value => 'Login'
 			end
 		end
+
+		def createmailbox
+			form :action => R(CreateMailbox), :method => 'post' do
+				p 'Enter the name of the mailbox you want to create'
+				input :type => 'text', :name => 'mailbox', :value => @mailbox
+				input :type => 'submit', :value => 'Create'
+			end
+		end
 	
 		def deleteq
 			form :action => R(DeleteMessage, @mailbox, @uid), :method => 'post' do
@@ -669,7 +695,10 @@ Date: #{Time.now.rfc822}
 		end
 
 		def mailboxes
-			p { a('Address Book', :href => R(Addresses)) }
+			p do
+				a('Address Book', :href => R(Addresses)); 
+				a('Create Mailbox', :href => R(CreateMailbox)) 
+			end
 			ul do
 				@mailboxes.each do |mb|
 					li do
