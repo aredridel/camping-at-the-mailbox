@@ -74,8 +74,7 @@ module CampingAtMailbox
 		end
 
 		def fetch_body_quoted
-			# FIXME: reply with body too
-			part = if @structure.parts
+			part = if @structure.respond_to? :parts and @structure.parts
 				@structure.parts.sort_by { |part| 
 					[
 						if part.media_type == 'TEXT': 0 else 1 end,
