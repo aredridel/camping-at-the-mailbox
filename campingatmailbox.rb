@@ -534,6 +534,8 @@ Date: #{Time.now.rfc822}
 					@state['username'], @state['password'], :plain) do |smtp|
 					smtp.send_message message, @state['username'], Net::IMAP::Address.parse(input.to).email
 				end
+				
+				render :sent
 			end
 		end
 
@@ -866,6 +868,13 @@ Date: #{Time.now.rfc822}
 		def header
 			pre do
 				@header.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
+			end
+		end
+
+		def sent
+			p 'Your mail was sent'
+			@results.each do |r|
+				p r
 			end
 		end
 
