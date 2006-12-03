@@ -800,7 +800,7 @@ module CampingAtMailbox
 		end
 
 		def mailboxes
-			p do
+			p.controls do
 				a('Address Book', :href => R(Addresses)); 
 				a('Create Mailbox', :href => R(CreateMailbox)) 
 				a('Compose a Message', :href => R(Compose, nil))
