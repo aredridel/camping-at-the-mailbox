@@ -67,6 +67,21 @@ module CampingAtMailbox
 			residentsession[:imap]
 		end
 
+		def composing_messages(k)
+			if !residentsession[:composing_messages]
+				residentsession[:composing_messages] = Hash.new 
+			end
+			if residentsession[:composing_messages][k]
+				residentsession[:composing_messages][k]
+			else
+				residentsession[:composing_messages][k] = Models::Message.new
+			end
+		end
+
+		def finish_message(k)
+			residentsession[:composing_messages][k] = nil
+		end
+
 		def serve(file)
 			extension = file.split('.').last
 			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
@@ -469,8 +484,13 @@ module CampingAtMailbox
 
 		# You'll have to write their mother a note.
 		#
-		class Compose < R('/compose/')
-			def get
+		class Compose < R('/compose/(.*)')
+			def get(messageid)
+				if messageid.empty?
+					messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
+				end
+				@messageid = messageid
+				@message = composing_messages(messageid)
 				render :compose
 			end
 		end
@@ -519,25 +539,91 @@ module CampingAtMailbox
 			end
 		end
 
-		class Send < R('/send')
-			def post
-				message = %{From: #{@state['username']}
-To: #{input.to}
-Subject: #{input.subject}
-Date: #{Time.now.rfc822}
+		class AttachFile < R('/attach/(.*)')
+			def get(messageid)
+				@messageid = messageid
+				@message = composing_messages(@messageid)
+				render :attach_files
+			end
+		end
 
-#{input.body}
-}
-
-				Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
-					'localhost', 
-					@state['username'], @state['password'], :plain) do |smtp|
-						@results = input.to.split(',').map do |a|
-							smtp.send_message message, @state['username'], Net::IMAP::Address.parse(a.strip).email
-						end
+		class Send < R('/send/(.*)')
+			def post(messageid)
+				@messageid = messageid
+				@message = composing_messages(@messageid)
+				if input.to
+					@message.to = input.to 
 				end
+				if input.subject
+					@message.subject = input.subject 
+				end
+				if input.body
+					@message.body = input.body
+				end
+				if input.file and input.file.is_a? H
+					@message.attachments << input.file
+					input.file.unlink # UNIX only
+				end
+
+				if /^Attach/ === input.action 
+					redirect R(AttachFile, messageid)
+					#render :attach_files
+				else			
+					Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
+						'localhost', 
+						@state['username'], @state['password'], :plain) do |smtp|
+							@results = smtp.open_message_stream(@state['username'], 
+								@message.to.split(',').map { |a| Net::IMAP::Address.parse(a.strip).email }) do |out|
+
+									out.puts "From: #{@state['username']}"
+									out.puts "To: #{@message.to}"
+									out.puts "Subject: #{@message.subject}"
+									out.puts "Date: #{Time.now.rfc822}"
+									if @message.attachments.size == 0
+										out.puts ""
+										out.puts "#{@message.body}"
+									else
+										boundary = "=_#{Time.now.to_i.to_s}"
+										out.puts 'Content-Type: multipart/mixed; boundary="'+boundary+'"'
+										out.puts ''
+										out.puts %{This is a MIME-formatted email message.}
+										out.puts ''
+										out.puts "--#{boundary}"
+										out.puts "Content-type: text/plain; charset=UTF-8"
+										out.puts "Content-transfer-encoding: quoted-printable"
+										out.puts ""
+										out.puts [@message.body].pack('M')
+										out.puts ""
+										@message.attachments.each do |att|
+											out.puts "--#{boundary}"
+											out.puts "Content-Type: #{att['type']}"
+											out.puts "Content-Disposition: attachment; filename=\"#{att['filename']}\""
+											att['tempfile'].seek(0)
+											if /^text/ === att['type']
+												out.puts "Content-transfer-encoding: quoted-printable"
+												out.puts ""
+												att['tempfile'].each_line do |l|
+													out.puts [l].pack("M")
+												end
+												out.puts ""
+											else
+												out.puts "Content-transfer-encoding: base64"
+												out.puts ""
+												until att['tempfile'].eof?
+													out << [att['tempfile'].read(4500)].pack("m").gsub("\n", "\r\n")
+												end
+												out.puts ""
+											end
+										end
+										out.puts "--#{boundary}--"
+									end
+							end
+							@message = nil
+							finish_message(@messageid)
+					end
 				
-				render :sent
+					render :sent
+				end
 			end
 		end
 
@@ -584,6 +670,21 @@ Date: #{Time.now.rfc822}
 
 	end
 
+	module Models
+		class Message
+			attr_accessor :to, :subject, :body
+			attr_reader :attachments
+			def initialize
+				@attachments = []
+				@to = ''
+				@subject = ''
+				@body = ''
+			end
+			def inspect
+				"Messsage to #{to}, subject #{subject}, body is #{body.size} bytes, and #{attachments.length} attachment(s)"
+			end
+		end
+	end
 
 	module Views
 		def addresses
@@ -702,6 +803,7 @@ Date: #{Time.now.rfc822}
 			p do
 				a('Address Book', :href => R(Addresses)); 
 				a('Create Mailbox', :href => R(CreateMailbox)) 
+				a('Compose a Message', :href => R(Compose, nil))
 			end
 			ul do
 				@mailboxes.each do |mb|
@@ -714,7 +816,7 @@ Date: #{Time.now.rfc822}
 
 		def mailbox
 			p.controls do
-				a 'compose', :href => R(Compose)
+				a 'compose', :href => R(Compose, nil)
 			end
 			h1 "#{@mailbox} (#{@total} total)"
 			if @total == 0
@@ -890,22 +992,38 @@ Date: #{Time.now.rfc822}
 		end
 
 		def compose
-			form.compose :action => R(Send), :method => 'post' do
+			form.compose :action => R(Send, @messageid), :method => 'post', :enctype => 'multipart/form-data' do
 				p do
-					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @to }
+					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @message.to }
 					div.autocomplete :id => 'to_autocomplete' do end
 					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "/addresses/autocomplete", { tokens: ',' }); } }
 				end
 				p do
-					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @subject } 
+					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @message.subject } 
 				end
 				p do
-					label { text 'Body '; textarea.body(:name => 'body') { text @body } }
+					label { text 'Body '; textarea.body(:name => 'body') { text @message.body } }
 				end
 				p do
-					input :type => 'submit', :value => 'Send' 
+					input :type => 'submit', :name => 'action', :value => 'Attach Files' 
+					input :type => 'submit', :name => 'action', :value => 'Send' 
 				end
 			end
+		end
+
+		def attach_files
+			p @message.inspect
+			form.compose :action => R(Send, @messageid), :method => 'post', :enctype => 'multipart/form-data' do
+				p { input :type => 'file', :name => 'file' }
+				p do
+					input :type => 'submit', :name => 'action', :value => 'Send' 
+					input :type => 'submit', :name => 'action', :value => 'Attach More Files' 
+				end
+			end
+		end
+		
+		def showinput
+			p @input.inspect
 		end
 
 	end
