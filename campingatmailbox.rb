@@ -229,8 +229,8 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				domain = input.username.split('@').last
-				imap_connection = Net::IMAP.new(($config['imaphost'] || input.imaphost).gsub('%{domain}', domain))
+				@state['domain'] = input.username.split('@').last
+				imap_connection = Net::IMAP.new(($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']))
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
@@ -574,7 +574,7 @@ module CampingAtMailbox
 					redirect R(AttachFile, messageid)
 					#render :attach_files
 				else			
-					Net::SMTP.start($config['smtphost'], $config['smtpport'].to_i, 
+					Net::SMTP.start($config['smtphost'].gsub('%{domain}', @state['domain']), $config['smtpport'].to_i, 
 						'localhost', 
 						@state['username'], @state['password'], :plain) do |smtp|
 							@results = smtp.open_message_stream(@state['username'], 
