@@ -491,7 +491,7 @@ module CampingAtMailbox
 					messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
 				end
 				@messageid = messageid
-				@message = composing_messages(messageid)
+				@cmessage = composing_messages(messageid)
 				render :compose
 			end
 		end
@@ -500,12 +500,14 @@ module CampingAtMailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
+				@messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
+				@cmessage = composing_messages(@messageid)
 				select_mailbox(mailbox)
 				fetch_structure
 				fetch_body_quoted
 
-				@to = @message.attr['ENVELOPE'].from.join(', ')
-				@subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
+				@cmessage.to = @message.attr['ENVELOPE'].from.join(', ')
+				@cmessage.subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
 		end
@@ -514,10 +516,12 @@ module CampingAtMailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
+				@messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
+				@cmessage = composing_messages(@messageid)
 				select_mailbox(mailbox)
 				fetch_structure
 				fetch_body_quoted
-				@subject = 'Fw: ' << (@message.attr['ENVELOPE'].subject || '')
+				@cmessage.subject = 'Fw: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
 		end
@@ -543,7 +547,7 @@ module CampingAtMailbox
 		class AttachFile < R('/attach/(.*)')
 			def get(messageid)
 				@messageid = messageid
-				@message = composing_messages(@messageid)
+				@cmessage = composing_messages(@messageid)
 				render :attach_files
 			end
 		end
@@ -551,18 +555,18 @@ module CampingAtMailbox
 		class Send < R('/send/(.*)')
 			def post(messageid)
 				@messageid = messageid
-				@message = composing_messages(@messageid)
+				@cmessage = composing_messages(@messageid)
 				if input.to
-					@message.to = input.to 
+					@cmessage.to = input.to 
 				end
 				if input.subject
-					@message.subject = input.subject 
+					@cmessage.subject = input.subject 
 				end
 				if input.body
-					@message.body = input.body
+					@cmessage.body = input.body
 				end
 				if input.file and input.file.is_a? H
-					@message.attachments << input.file
+					@cmessage.attachments << input.file
 					input.file.unlink # UNIX only
 				end
 
@@ -574,15 +578,15 @@ module CampingAtMailbox
 						'localhost', 
 						@state['username'], @state['password'], :plain) do |smtp|
 							@results = smtp.open_message_stream(@state['username'], 
-								@message.to.split(',').map { |a| Net::IMAP::Address.parse(a.strip).email }) do |out|
+								@cmessage.to.split(',').map { |a| Net::IMAP::Address.parse(a.strip).email }) do |out|
 
 									out.puts "From: #{@state['username']}"
-									out.puts "To: #{@message.to}"
-									out.puts "Subject: #{@message.subject}"
+									out.puts "To: #{@cmessage.to}"
+									out.puts "Subject: #{@cmessage.subject}"
 									out.puts "Date: #{Time.now.rfc822}"
-									if @message.attachments.size == 0
+									if @cmessage.attachments.size == 0
 										out.puts ""
-										out.puts "#{@message.body}"
+										out.puts "#{@cmessage.body}"
 									else
 										boundary = "=_#{Time.now.to_i.to_s}"
 										out.puts 'Content-Type: multipart/mixed; boundary="'+boundary+'"'
@@ -593,9 +597,9 @@ module CampingAtMailbox
 										out.puts "Content-type: text/plain; charset=UTF-8"
 										out.puts "Content-transfer-encoding: quoted-printable"
 										out.puts ""
-										out.puts [@message.body].pack('M')
+										out.puts [@cmessage.body].pack('M')
 										out.puts ""
-										@message.attachments.each do |att|
+										@cmessage.attachments.each do |att|
 											out.puts "--#{boundary}"
 											out.puts "Content-Type: #{att['type']}"
 											out.puts "Content-Disposition: attachment; filename=\"#{att['filename']}\""
@@ -619,7 +623,7 @@ module CampingAtMailbox
 										out.puts "--#{boundary}--"
 									end
 							end
-							@message = nil
+							@cmessage = nil
 							finish_message(@messageid)
 					end
 				
@@ -691,6 +695,7 @@ module CampingAtMailbox
 		def addresses
 			h1 'Addresses'
 			table.addresses do
+				tr { th 'Name'; th 'Address' }
 				@addresses.each do |name,address|
 					tr do
 						td name
@@ -745,7 +750,7 @@ module CampingAtMailbox
 		def login
 			p $config['banner']
 			form :action => R(Login), :method => 'post' do
-				label 'Username', :for => 'username'; br
+				label 'Email Address', :for => 'username'; br
 				input :name => 'username', :type => 'text'; br
 
 				label 'Password', :for => 'password'; br
@@ -995,15 +1000,15 @@ module CampingAtMailbox
 		def compose
 			form.compose :action => R(Send, @messageid), :method => 'post', :enctype => 'multipart/form-data' do
 				p do
-					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @message.to }
+					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @cmessage.to }
 					div.autocomplete :id => 'to_autocomplete' do end
 					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "#{self / R(AddressesAutocomplete)}", { tokens: ',' }); } }
 				end
 				p do
-					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @message.subject } 
+					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @cmessage.subject } 
 				end
 				p do
-					label { text 'Body '; textarea.body(:name => 'body') { text @message.body } }
+					label { text 'Body '; textarea.body(:name => 'body') { text @cmessage.body } }
 				end
 				p do
 					input :type => 'submit', :name => 'action', :value => 'Attach Files' 
@@ -1013,7 +1018,7 @@ module CampingAtMailbox
 		end
 
 		def attach_files
-			p @message.inspect
+			p @cmessage.inspect
 			form.compose :action => R(Send, @messageid), :method => 'post', :enctype => 'multipart/form-data' do
 				p { input :type => 'file', :name => 'file' }
 				p do
