@@ -1,5 +1,5 @@
-imaphost: mail.theinternetco.net
-smtphost: mail.theinternetco.net
+imaphost: mail.%{domain}
+smtphost: mail.%{domain}
 smtpport: 587
 banner: Username guest@theinternetco.net password Aeco3ahr
 database: dbi:SQlite3:campingatmailbox.db

@@ -19,3 +19,9 @@
 	- Move to folders
 	- Delete
 
+== Setup
+
+mailbox.conf contains values to configure Camping at the Mailbox.
+
+Among them are imaphost and smtphost, both of which can use the token
+%{domain}, which will be replaced by the domain in a username.
