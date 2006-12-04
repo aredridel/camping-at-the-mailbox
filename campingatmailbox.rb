@@ -7,10 +7,6 @@ require 'net/smtp'
 require 'dbi'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
-$config = YAML.load(File.read('mailbox.conf'))
-$db = DBI.connect($config['database'])
-
-$cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
 
 class Net::IMAP
 	def idle
@@ -1092,4 +1088,16 @@ tryAt)
 		end
 		return lineEnd
 	end
+end
+
+Dir.chdir(File.dirname(__FILE__))
+$config = YAML.load(File.read('mailbox.conf'))
+$db = DBI.connect($config['database'])
+$cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
+
+if __FILE__ == $0
+	params = $config['database'].split(':', 3)
+	CampingAtMailbox::Models::Base.establish_connection :adapter => params[1].downcase, :database => params[2]
+	require 'camping/fastcgi'
+	Camping::FastCGI.start(CampingAtMailbox)
 end
