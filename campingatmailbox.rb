@@ -1,4 +1,4 @@
-#!/usr/sbin/ruby
+#!/usr/bin/ruby
 
 require 'camping'
 require 'net/imap'
