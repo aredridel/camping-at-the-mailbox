@@ -997,7 +997,7 @@ module CampingAtMailbox
 				p do
 					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @message.to }
 					div.autocomplete :id => 'to_autocomplete' do end
-					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "/addresses/autocomplete", { tokens: ',' }); } }
+					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "#{self / R(AddressesAutocomplete)}", { tokens: ',' }); } }
 				end
 				p do
 					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @message.subject } 
