@@ -106,7 +106,7 @@ module CampingAtMailbox
 		def fetch_addresses
 			@addresses = []
 			st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
-			rh = $db.execute(st, @state['username'])
+			rh = $db.execute(st, @state['from'])
 			rh.fetch do |name,address|
 				@addresses << [name,address]
 			end
@@ -226,8 +226,17 @@ module CampingAtMailbox
 			# 
 			# See Mailboxes
 			def post
-				@state['domain'] = input.username.split('@').last
-				imap_connection = Net::IMAP.new(($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']))
+				if /@/ === input.username
+					@state['domain'] = input.username.split('@').last
+					@state['from'] = input.username
+				else
+					@state['domain'] = env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
+					@state['from'] = input.username + '@' + @state['domain']
+				end
+				imap_connection = Net::IMAP.new(
+					($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']), 
+					$config['imapport'].to_i || 143
+				)
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
@@ -573,11 +582,11 @@ module CampingAtMailbox
 				else			
 					Net::SMTP.start($config['smtphost'].gsub('%{domain}', @state['domain']), $config['smtpport'].to_i, 
 						'localhost', 
-						@state['username'], @state['password'], :plain) do |smtp|
-							@results = smtp.open_message_stream(@state['username'], 
+						@state['from'], @state['password'], :plain) do |smtp|
+							@results = smtp.open_message_stream(@state['from'], 
 								@cmessage.to.split(',').map { |a| Net::IMAP::Address.parse(a.strip).email }) do |out|
 
-									out.puts "From: #{@state['username']}"
+									out.puts "From: #{@state['from']}"
 									out.puts "To: #{@cmessage.to}"
 									out.puts "Subject: #{@cmessage.subject}"
 									out.puts "Date: #{Time.now.rfc822}"
@@ -640,7 +649,7 @@ module CampingAtMailbox
 				@errors = []
 				fetch_addresses
 				if /@/ === input.address
-					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['username'])
+					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['from'])
 					redirect R(Addresses)
 				else
 					@errors << "That didn't look like an email address -- it's gotta at least have an @"
@@ -665,7 +674,7 @@ module CampingAtMailbox
 			end
 
 			def post(address)
-				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['username'], address)
+				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['from'], address)
 				redirect R(Addresses)
 			end
 		end
