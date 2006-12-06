@@ -744,7 +744,7 @@ module CampingAtMailbox
 		end
 
 		def login
-			p $config['banner']
+			p begin File.read('banner') rescue $config['banner'] end
 			form :action => R(Login), :method => 'post' do
 				label 'Email Address', :for => 'username'; br
 				input :name => 'username', :type => 'text'; br
