@@ -380,6 +380,16 @@ module CampingAtMailbox
 			end
 		end
 
+		class Logout < R '/logout'
+			def get
+				imap.disconnect
+				residentsession[:imap] = nil
+				@state['username'] = nil
+				@state['password'] = nil
+				redirect R(Login)
+			end
+		end
+
 		# There is a scroll tacked to the wall with an arrow. You take it 
 		# down and read it.
 		#
@@ -813,9 +823,10 @@ module CampingAtMailbox
 
 		def mailboxes
 			p.controls do
-				a('Address Book', :href => R(Addresses)); 
-				a('Create Mailbox', :href => R(CreateMailbox)) 
 				a('Compose a Message', :href => R(Compose, nil))
+				a('Create Mailbox', :href => R(CreateMailbox)) 
+				a('Address Book', :href => R(Addresses))
+				a('Log Out', :href => R(Logout))
 			end
 			ul do
 				@mailboxes.each do |mb|
