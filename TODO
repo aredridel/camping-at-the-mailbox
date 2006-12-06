@@ -31,3 +31,11 @@
 - Mass delete
 
 - Set full name for From line
+
+- Address book
+	- import
+		- guess import type -- outlook express csv, LDIF (WAB?)
+	- export
+		- Select by program and file type
+
+- Sort mailboxes with subtrees
