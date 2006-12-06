@@ -81,6 +81,7 @@ module CampingAtMailbox
 		def serve(file)
 			extension = file.split('.').last
 			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
+			@headers['Last-Modified'] = File.stat(file).mtime.rfc2822
 			@body = File.open(file, 'r')
 		end
 
