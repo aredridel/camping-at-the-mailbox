@@ -100,7 +100,7 @@ module CampingAtMailbox
 			else
 				@structure
 			end
-			@body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+			@cmessage.body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
 		end
 
 		def fetch_addresses
