@@ -25,3 +25,5 @@ mailbox.conf contains values to configure Camping at the Mailbox.
 
 Among them are imaphost and smtphost, both of which can use the token
 %{domain}, which will be replaced by the domain in a username.
+
+You can make a file 'banner', which will be displayed on the login screen.
