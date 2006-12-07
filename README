@@ -46,6 +46,9 @@ LDAP DN form (<code>dc=example,dc=org</code>). <code>ldapmailattr</code>
 specifies the attribute to use as the email address, and
 <code>ldapnameattr</code> specifies the attribute to use as the user's name.
 
+Make sure that both the name and mail attributes are mandatory in your LDAP
+schema.
+
 === Other files
 
 You can make a file <code>banner</code>, which will be displayed on the login
