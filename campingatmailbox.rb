@@ -5,6 +5,7 @@ require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
 require 'dbi'
+require 'stringio'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 
@@ -186,6 +187,51 @@ module CampingAtMailbox
 				end
 			when Net::IMAP::BodyTypeMessage
 				index_structure structure.body
+			end
+		end
+
+		def output_message_to(out)
+			out.puts "From: #{@state['from']}"
+			out.puts "To: #{@cmessage.to}"
+			out.puts "Subject: #{@cmessage.subject}"
+			out.puts "Date: #{Time.now.rfc822}"
+			if @cmessage.attachments.size == 0
+				out.puts ""
+				out.puts "#{@cmessage.body}"
+			else
+				boundary = "=_#{Time.now.to_i.to_s}"
+				out.puts 'Content-Type: multipart/mixed; boundary="'+boundary+'"'
+				out.puts ''
+				out.puts %{This is a MIME-formatted email message.}
+				out.puts ''
+				out.puts "--#{boundary}"
+				out.puts "Content-type: text/plain; charset=UTF-8"
+				out.puts "Content-transfer-encoding: quoted-printable"
+				out.puts ""
+				out.puts [@cmessage.body].pack('M')
+				out.puts ""
+				@cmessage.attachments.each do |att|
+					out.puts "--#{boundary}"
+					out.puts "Content-Type: #{att['type']}"
+					out.puts "Content-Disposition: attachment; filename=\"#{att['filename']}\""
+					att['tempfile'].seek(0)
+					if /^text/ === att['type']
+						out.puts "Content-transfer-encoding: quoted-printable"
+						out.puts ""
+						att['tempfile'].each_line do |l|
+							out.puts [l].pack("M")
+						end
+						out.puts ""
+					else
+						out.puts "Content-transfer-encoding: base64"
+						out.puts ""
+						until att['tempfile'].eof?
+							out << [att['tempfile'].read(4500)].pack("m").gsub("\n", "\r\n")
+						end
+						out.puts ""
+					end
+				end
+				out.puts "--#{boundary}--"
 			end
 		end
 		
@@ -576,50 +622,16 @@ module CampingAtMailbox
 						'localhost', 
 						@state['from'], @state['password'], :plain) do |smtp|
 							@results = smtp.open_message_stream(@state['from'], 
-								@cmessage.to.split(',').map { |a| Net::IMAP::Address.parse(a.strip).email }) do |out|
-
-									out.puts "From: #{@state['from']}"
-									out.puts "To: #{@cmessage.to}"
-									out.puts "Subject: #{@cmessage.subject}"
-									out.puts "Date: #{Time.now.rfc822}"
-									if @cmessage.attachments.size == 0
-										out.puts ""
-										out.puts "#{@cmessage.body}"
-									else
-										boundary = "=_#{Time.now.to_i.to_s}"
-										out.puts 'Content-Type: multipart/mixed; boundary="'+boundary+'"'
-										out.puts ''
-										out.puts %{This is a MIME-formatted email message.}
-										out.puts ''
-										out.puts "--#{boundary}"
-										out.puts "Content-type: text/plain; charset=UTF-8"
-										out.puts "Content-transfer-encoding: quoted-printable"
-										out.puts ""
-										out.puts [@cmessage.body].pack('M')
-										out.puts ""
-										@cmessage.attachments.each do |att|
-											out.puts "--#{boundary}"
-											out.puts "Content-Type: #{att['type']}"
-											out.puts "Content-Disposition: attachment; filename=\"#{att['filename']}\""
-											att['tempfile'].seek(0)
-											if /^text/ === att['type']
-												out.puts "Content-transfer-encoding: quoted-printable"
-												out.puts ""
-												att['tempfile'].each_line do |l|
-													out.puts [l].pack("M")
-												end
-												out.puts ""
-											else
-												out.puts "Content-transfer-encoding: base64"
-												out.puts ""
-												until att['tempfile'].eof?
-													out << [att['tempfile'].read(4500)].pack("m").gsub("\n", "\r\n")
-												end
-												out.puts ""
-											end
-										end
-										out.puts "--#{boundary}--"
-									end
+								@cmessage.to.split(',').map do |a| 
+									Net::IMAP::Address.parse(a.strip).email 
+								end
+							) do |out|
+								output_message_to(out)
+								msg = ''
+								# FIXME, big attachments should totally cause huge core growth
+								o = StringIO.new(msg)
+								output_message_to(o)
+								imap.append("Sent", msg, [:Seen], Time.now)
 							end
 							@cmessage = nil
 							finish_message(@messageid)
