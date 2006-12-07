@@ -83,6 +83,10 @@ module CampingAtMailbox
 			residentsession[:composing_messages][k] = nil
 		end
 
+		def new_messageid
+			Time.now.to_i.to_s + '-' + Process.pid.to_s
+		end
+
 		def serve(file)
 			extension = file.split('.').last
 			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
@@ -549,11 +553,39 @@ module CampingAtMailbox
 		class Compose < R('/compose/(.*)')
 			def get(messageid)
 				if messageid.empty?
-					messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
+					messageid = new_messageid
 				end
 				@messageid = messageid
 				@cmessage = composing_messages(messageid)
 				render :compose
+			end
+			def post(messageid)
+				select_mailbox("Drafts")
+				@messageid = new_messageid
+				@uid = input.uid.to_i
+				fetch_structure
+				@cmessage = composing_messages(@messageid)
+				part = if @structure.respond_to? :parts and @structure.parts
+					@structure.parts.sort_by { |part| 
+						[
+							if part.media_type == 'TEXT': 0 else 1 end,
+							case part.media_type
+							when 'PLAIN': 0 
+							when 'HTML': 1
+							else 2
+							end
+						]
+					}.first
+				else
+					@structure
+				end
+				@cmessage.body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"])
+				@cmessage.subject = envelope.subject if envelope.subject
+				@cmessage.to = envelope.to.map { |e| e.to_s }.join(', ') if envelope.to
+				@cmessage.cc = envelope.cc.map { |e| e.to_s }.join(', ') if envelope.cc
+				@cmessage.bcc = envelope.bcc.map { |e| e.to_s }.join(', ') if envelope.bcc
+				# FIXME: handle attachments
+				redirect R(Compose, @messageid)
 			end
 		end
 
@@ -561,7 +593,7 @@ module CampingAtMailbox
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
-				@messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
+				@messageid = new_messageid
 				@cmessage = composing_messages(@messageid)
 				select_mailbox(mailbox)
 				fetch_structure
@@ -644,6 +676,12 @@ module CampingAtMailbox
 				if /^Attach/ === input.action 
 					redirect R(AttachFile, messageid)
 					#render :attach_files
+				elsif /^Save/ === input.action
+					m = ''
+					o = StringIO.new(m)
+					output_message_to(o)
+					imap.append("Drafts", m)
+					redirect R(Mailbox, 'Drafts')
 				else			
 					Net::SMTP.start($config['smtphost'].gsub('%{domain}', @state['domain']), $config['smtpport'].to_i, 
 						'localhost', 
@@ -882,6 +920,20 @@ module CampingAtMailbox
 					tr(:class => 'header') do
 						td do
 							p.envelope do 
+								if @mailbox == 'Drafts' and env.to
+									text 'To ' 
+									text env.to[0..8].map { |to|
+										capture do
+											cite(:title => to.mailbox + '@' + to.host) do
+												to.name || to.mailbox 
+											end 
+										end
+									}.join(', ')
+									if env.to.length > 9
+										text ", more..."
+									end
+									br
+								end
 								text 'From ' 
 								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
 									env.from[0].name || env.from[0].mailbox 
@@ -900,6 +952,14 @@ module CampingAtMailbox
 							p.subject do
 								a(if !env.subject or env.subject.strip.empty? then 'no subject' else env.subject end, :href => R(Message, @mailbox, message.attr['UID']))
 							end 
+						end
+						if @mailbox == 'Drafts'
+							td do
+								form :action => R(Compose, nil), :method => 'post' do
+									input :type => 'hidden', :name => 'uid', :value => message.attr['UID']
+									input :type => 'submit', :value => "Edit"
+								end
+							end
 						end
 					end
 				end
@@ -1073,8 +1133,9 @@ module CampingAtMailbox
 					label { text 'Body '; textarea.body(:name => 'body') { text @cmessage.body } }
 				end
 				p do
-					input :type => 'submit', :name => 'action', :value => 'Attach Files' 
 					input :type => 'submit', :name => 'action', :value => 'Send' 
+					input :type => 'submit', :name => 'action', :value => 'Attach Files' 
+					input :type => 'submit', :name => 'action', :value => 'Save to Drafts' 
 				end
 			end
 		end
