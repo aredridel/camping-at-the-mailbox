@@ -214,7 +214,11 @@ module CampingAtMailbox
 	module Controllers
 		class Index < R '/'
 			def get
-				redirect Login
+				if imap
+					redirect Mailboxes
+				else
+					redirect Login
+				end
 			end
 		end
 
