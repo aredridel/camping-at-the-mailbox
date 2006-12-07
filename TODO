@@ -43,3 +43,4 @@
 - LDAP authenticated binds
 	- RW LDAP address books
 
+- Show read versus unread messages
