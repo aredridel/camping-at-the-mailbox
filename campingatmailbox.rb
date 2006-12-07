@@ -913,7 +913,10 @@ module CampingAtMailbox
 
 		def mailbox
 			p.controls do
-				a 'compose', :href => R(Compose, nil)
+				a('Compose a Message', :href => R(Compose, nil))
+				a('Mailbox List', :href => R(Mailboxes))
+				a('Address Book', :href => R(Addresses))
+				a('Log Out', :href => R(Logout))
 			end
 			h1 "#{@mailbox} (#{@total} total)"
 			if @total == 0
