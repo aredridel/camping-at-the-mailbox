@@ -213,6 +213,7 @@ module CampingAtMailbox
 		def output_message_to(out)
 			out.puts "From: #{@state['from']}"
 			out.puts "To: #{@cmessage.to}"
+			out.puts "CC: #{@cmessage.cc}"
 			out.puts "Subject: #{@cmessage.subject}"
 			out.puts "Date: #{Time.now.rfc822}"
 			if @cmessage.attachments.size == 0
@@ -623,6 +624,12 @@ module CampingAtMailbox
 				if input.to
 					@cmessage.to = input.to 
 				end
+				if input.cc
+					@cmessage.cc = input.cc 
+				end
+				if input.bcc
+					@cmessage.bcc = input.bcc 
+				end
 				if input.subject
 					@cmessage.subject = input.subject 
 				end
@@ -642,7 +649,7 @@ module CampingAtMailbox
 						'localhost', 
 						@state['from'], @state['password'], :plain) do |smtp|
 							@results = smtp.open_message_stream(@state['from'], 
-								@cmessage.to.split(',').map do |a| 
+								[@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
 									Net::IMAP::Address.parse(a.strip).email 
 								end
 							) do |out|
@@ -710,11 +717,13 @@ module CampingAtMailbox
 
 	module Models
 		class Message
-			attr_accessor :to, :subject, :body
+			attr_accessor :to, :cc, :bcc, :subject, :body
 			attr_reader :attachments
 			def initialize
 				@attachments = []
 				@to = ''
+				@cc = ''
+				@bcc = ''
 				@subject = ''
 				@body = ''
 			end
@@ -1045,6 +1054,16 @@ module CampingAtMailbox
 					label { text 'To '; input :type=> 'text', :name => 'to', :id => 'to', :value => @cmessage.to }
 					div.autocomplete :id => 'to_autocomplete' do end
 					script { text %{new Ajax.Autocompleter("to", "to_autocomplete", "#{self / R(AddressesAutocomplete)}", { tokens: ',' }); } }
+				end
+				p do
+					label { text 'CC '; input :type=> 'text', :name => 'cc', :id => 'cc', :value => @cmessage.cc }
+					div.autocomplete :id => 'cc_autocomplete' do end
+					script { text %{new Ajax.Autocompleter("cc", "cc_autocomplete", "#{self / R(AddressesAutocomplete)}", { tokens: ',' }); } }
+				end
+				p do
+					label { text 'BCC '; input :type=> 'text', :name => 'bcc', :id => 'bcc', :value => @cmessage.bcc }
+					div.autocomplete :id => 'bcc_autocomplete' do end
+					script { text %{new Ajax.Autocompleter("bcc", "bcc_autocomplete", "#{self / R(AddressesAutocomplete)}", { tokens: ',' }); } }
 				end
 				p do
 					label { text 'Subject '; input :type=> 'text', :name => 'subject', :value => @cmessage.subject } 

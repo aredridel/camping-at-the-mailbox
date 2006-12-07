@@ -40,8 +40,6 @@
 
 - Create address book tables on create
 
-- CC and BCC fields
-
 - LDAP authenticated binds
 	- RW LDAP address books
 
