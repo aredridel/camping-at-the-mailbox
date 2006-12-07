@@ -483,7 +483,7 @@ module CampingAtMailbox
 		
 		# There seems to be another object tied to the arrow.
 		#
-		class Attachment < R '/mailboxes/(.*)/messages/(\d+)/attachment/(.*)'
+		class Attachment < R '/mailboxes/(.*)/m(\d+)/attachment/(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -496,7 +496,7 @@ module CampingAtMailbox
 
 		# You examine the scroll and arrow for signs of its origin.
 		#
-		class Header < R '/mailboxes/(.*)/messages/(\d+)/headers'
+		class Header < R '/mailboxes/(.*)/m(\d+)/headers'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -508,7 +508,7 @@ module CampingAtMailbox
 
 		# There is a large, red button here. 
 		#
-		class DeleteMessage < R '/mailboxes/(.*)/messages/(\d+)/delete'
+		class DeleteMessage < R '/mailboxes/(.*)/m(\d+)/delete'
 
 			# You press it to see what it does.
 			#
@@ -538,7 +538,7 @@ module CampingAtMailbox
 		# wrapped around an arrow on the outside of the building. You move
 		# it to a safer location.
 		#
-		class MoveMessage < R '/mailboxes/(.*)/messages/(\d+)/move'
+		class MoveMessage < R '/mailboxes/(.*)/m(\d+)/move'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -596,7 +596,7 @@ module CampingAtMailbox
 			end
 		end
 
-		class Reply < R '/mailboxes/(.*)/messages/(\d+)/reply'
+		class Reply < R '/mailboxes/(.*)/m(\d+)/reply'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -616,7 +616,7 @@ module CampingAtMailbox
 			end
 		end
 
-		class Forward < R '/mailboxes/(.*)/messages/(\d+)/forward'
+		class Forward < R '/mailboxes/(.*)/m(\d+)/forward'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
