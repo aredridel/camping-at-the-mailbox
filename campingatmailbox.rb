@@ -856,6 +856,7 @@ module CampingAtMailbox
 				a('Address Book', :href => R(Addresses))
 				a('Log Out', :href => R(Logout))
 			end
+			h1 "Mailboxes"
 			ul do
 				@mailboxes.each do |mb|
 					li do
