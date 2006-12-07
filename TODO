@@ -24,8 +24,6 @@
 - forward
 	- optionally include attachments
 
-- copy sent messages to Sent folder
-
 - Show deleted messages
 
 - Mass delete
