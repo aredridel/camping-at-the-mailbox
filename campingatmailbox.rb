@@ -337,7 +337,14 @@ module CampingAtMailbox
 					@state['username'] = input.username
 					@state['password'] = input.password
 					imap.add_response_handler { |r| imap_response_handler(r) }
-					imap.subscribe('INBOX')
+					begin
+						imap.subscribe('INBOX')
+						imap.create("Drafts")
+						imap.subscribe("Drafts")
+						imap.create("Sent")
+						imap.subscribe("Sent")
+					rescue Net::IMAP::NoResponseError => e
+					end
 					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
