@@ -346,42 +346,9 @@ module CampingAtMailbox
 		# A snappily dressed mailman stands over a postal scale in the front
 		# lobby.
 		#
-		class Style < R '/styles.css'
+		class Style < R '/site.css'
 			def get
-				@headers['Content-Type'] = 'text/css; charset=UTF-8'
-				@body = %{
-					@media print { .controls {display: none;} }
-					body {
-						font-family: Gentium, Palatino, Palladio, serif;
-						background-color: #df7;
-						color: #452;
-						margin-left: 1in;
-						margin-top: 1in;
-						margin-right: 2in;
-						margin-bottom: 1in;
-					}	
-					a { color: #573; }
-					a:visited { color: #341; }
-					a:active { color: #900; }
-					.header p { margin: 0; padding: 0; }
-					.header p.subject { text-indent: 1em; }
-					.header p.controls { text-indent: 1em; }
-					p.messagepartheader { margin-bottom: 0;}
-					form.compose textarea { width: 100%; height: 4in }
-					form.compose input[type='text'] { width: 100%; }
-					.error { color: #900 }
-					.message { margin-left: 2em; }
-					.fin { text-indent: 2in; }
-					ul.folderlist { list-style: none outside; padding: 0;}
-					.autocomplete { background-color: #FFF; 
-						color: #573; border: 1px solid #888; margin: 0px; padding: 0px; }
-					.autocomplete ul { list-style-type:none; margin:0px; padding:0px; }
-					.autocomplete ul li.selected { background-color: #ffb;}
-					.autocomplete ul li {
-						list-style-type:none; display:block; 
-						margin:0; padding:2px; height:32px; cursor:pointer;
-					 }
-				}
+				serve 'site.css'
 			end
 		end
 
@@ -778,7 +745,7 @@ module CampingAtMailbox
 				head do
 					title 'Webmail'
 					link :rel => 'stylesheet', :type => 'text/css', 
-							:href => '/styles.css'
+							:href => R(Style)
 					script :src => R(Scripts, 'prototype'), :type => 'text/javascript'
 					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript'
 				end
