@@ -1,0 +1,9 @@
+@media print { .controls {display: none;} }
+.autocomplete { margin: 0px; padding: 0px; }
+.autocomplete ul li {
+	list-style-type:none; display:block; 
+	margin:0; padding:2px; cursor:pointer;
+}
+.autocomplete ul { list-style-type:none; margin:0px; padding:0px; }
+form.compose textarea { width: 100%; height: 4in }
+form.compose input[type='text'] { width: 100%; }

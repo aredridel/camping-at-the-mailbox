@@ -346,9 +346,9 @@ module CampingAtMailbox
 		# A snappily dressed mailman stands over a postal scale in the front
 		# lobby.
 		#
-		class Style < R '/site.css'
-			def get
-				serve 'site.css'
+		class Style < R '/(.*).css'
+			def get(file)
+				serve file+'.css'
 			end
 		end
 
@@ -745,7 +745,9 @@ module CampingAtMailbox
 				head do
 					title 'Webmail'
 					link :rel => 'stylesheet', :type => 'text/css', 
-							:href => R(Style)
+							:href => R(Style, 'functional')
+					link :rel => 'stylesheet', :type => 'text/css', 
+							:href => R(Style, 'site')
 					script :src => R(Scripts, 'prototype'), :type => 'text/javascript'
 					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript'
 				end
