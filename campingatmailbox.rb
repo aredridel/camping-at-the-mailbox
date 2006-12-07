@@ -380,7 +380,7 @@ module CampingAtMailbox
 		#
 		# Off in the distance, a faint 'whoopwhoop' noise can be heard.
 		#
-		class Mailbox < R '/mailboxes/(.+)/messages/'
+		class Mailbox < R '/mailboxes/(.+)/'
 			
 			# Suddenly, there's a whizthunk! and you see an arrow embed itself 
 			# in the wall next to your head. There seems to be a Message attached.
@@ -449,7 +449,7 @@ module CampingAtMailbox
 		# There is a scroll tacked to the wall with an arrow. You take it 
 		# down and read it.
 		#
-		class Message < R '/mailboxes/(.*)/messages/(\d+)'
+		class Message < R '/mailboxes/(.*)/m(\d+)'
 			def get(mailbox, uid)
 				@mailbox = mailbox
 				@uid = uid.to_i
@@ -462,7 +462,7 @@ module CampingAtMailbox
 		# An inner piece of parchment flutters to the ground as you unroll
 		# the scroll. You pick it up and read it.
 		#
-		class MessagePart < R '/mailboxes/(.*)/messages/(\d+)/parts/(.*)'
+		class MessagePart < R '/mailboxes/(.*)/m(\d+)/part(.*)'
 			def get(mailbox, uid, part)
 				@mailbox = mailbox
 				@uid = uid.to_i
