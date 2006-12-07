@@ -1,6 +1,9 @@
 imaphost: mail.%{domain}
 smtphost: mail.%{domain}
 smtpport: 587
+ldaphost: ldap.%{domain}
+ldapbase: ou=Users,%{domain}
+ldapmailattr: uid
 banner: Username guest@theinternetco.net password Aeco3ahr
 database: dbi:SQlite3:campingatmailbox.db
 

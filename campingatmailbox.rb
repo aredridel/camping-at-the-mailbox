@@ -63,6 +63,10 @@ module CampingAtMailbox
 			residentsession[:imap]
 		end
 
+		def ldap
+			residentsession[:ldap]
+		end
+
 		def composing_messages(k)
 			if !residentsession[:composing_messages]
 				residentsession[:composing_messages] = Hash.new 
@@ -250,6 +254,9 @@ module CampingAtMailbox
 					end
 					residentsession.clear
 					residentsession[:imap] = imap_connection
+					if $config['ldaphost']
+						residentsession[:ldap] = LDAP::Conn.new($config['ldaphost'].gsub('%{domain}', @state['domain']))
+					end
 					residentsession[:pinger] = Thread.new do 
 						while residentsession[:imap] and !imap.disconnected?
 							imap.noop
@@ -681,6 +688,22 @@ module CampingAtMailbox
 			def post
 				fetch_addresses
 				@pattern = input.to || input.cc
+
+				@addresses = @addresses.select { |e| /^#{@pattern}/i === e[0] }
+
+
+				if ldap and @pattern.length > 2
+					name_attr = $config['ldapnameattr'] || 'cn'
+					mail_attr = $config['ldapmailattr'] || 'mail'
+					ldap_search = ($config['ldapsearch'] || [name_attr]).map do |a|
+						"(#{a}=#{@pattern}*)"
+					end.join('|')
+					ldap.search($config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(',')), 
+						LDAP::LDAP_SCOPE_SUBTREE, ldap_search
+					) do |ent|
+						@addresses << [ent[name_attr][0], ent[mail_attr][0]]
+					end
+				end
 				render :_addresses
 			end
 		end
@@ -744,7 +767,7 @@ module CampingAtMailbox
 
 		def _addresses
 			ul do
-				@addresses.select { |e| /^#{@pattern}/i === e[0] }.each do |e|
+				@addresses.each do |e|
 					li(if e[0] then "#{e[0]} <#{e[1]}>" else e[1] end)
 				end
 			end
@@ -1129,6 +1152,9 @@ Dir.chdir(File.dirname(__FILE__))
 $config = YAML.load(File.read('mailbox.conf'))
 $db = DBI.connect($config['database'])
 $cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
+if $config['ldaphost']
+	require 'ldap'
+end
 
 if __FILE__ == $0
 	params = $config['database'].split(':', 3)
