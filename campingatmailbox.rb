@@ -108,12 +108,32 @@ module CampingAtMailbox
 			@cmessage.body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
 		end
 
-		def fetch_addresses
+		def fetch_addresses(pattern = nil)
 			@addresses = []
-			st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
+			if pattern
+				st = ('SELECT name, address FROM addresses WHERE user_id = ? AND (name like ? OR address like ?) ORDER BY name, address')
 			rh = $db.execute(st, @state['from'])
+				rh = $db.execute(st, @state['from'], "#{pattern}%", "#{pattern}%")
+			else
+				st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
+				rh = $db.execute(st, @state['from'])
+			end
 			rh.fetch do |name,address|
 				@addresses << [name,address]
+			end
+
+			if ldap and pattern and pattern.length > 2
+				name_attr = $config['ldapnameattr'] || 'cn'
+				mail_attr = $config['ldapmailattr'] || 'mail'
+				ldap_search = ($config['ldapsearch'] || [name_attr]).map do |a|
+					"(#{a}=#{@pattern}*)"
+				end.join('|')
+				ldap.search($config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(',')), 
+					LDAP::LDAP_SCOPE_SUBTREE, ldap_search
+				) do |ent|
+					@addresses << [ent[name_attr][0], ent[mail_attr][0]]
+				end
+				@addresses.sort! { |a,b| a[0] <=> b[0] }
 			end
 		end
 
@@ -665,24 +685,11 @@ module CampingAtMailbox
 
 		class AddressesAutocomplete < R '/addresses/autocomplete'
 			def post
-				fetch_addresses
 				@pattern = input.to || input.cc
+				fetch_addresses(@pattern)
 
 				@addresses = @addresses.select { |e| /^#{@pattern}/i === e[0] }
 
-
-				if ldap and @pattern.length > 2
-					name_attr = $config['ldapnameattr'] || 'cn'
-					mail_attr = $config['ldapmailattr'] || 'mail'
-					ldap_search = ($config['ldapsearch'] || [name_attr]).map do |a|
-						"(#{a}=#{@pattern}*)"
-					end.join('|')
-					ldap.search($config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(',')), 
-						LDAP::LDAP_SCOPE_SUBTREE, ldap_search
-					) do |ent|
-						@addresses << [ent[name_attr][0], ent[mail_attr][0]]
-					end
-				end
 				render :_addresses
 			end
 		end
