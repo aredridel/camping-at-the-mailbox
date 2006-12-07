@@ -44,4 +44,6 @@
 
 - CC and BCC fields
 
+- LDAP authenticated binds
+	- RW LDAP address books
 
