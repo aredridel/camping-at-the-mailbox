@@ -522,7 +522,11 @@ module CampingAtMailbox
 				fetch_structure
 				fetch_body_quoted
 
-				@cmessage.to = @message.attr['ENVELOPE'].from.join(', ')
+				@cmessage.to = if @message.attr['ENVELOPE'].reply_to.empty? 
+					@message.attr['ENVELOPE'].from 
+				else
+					@message.attr['ENVELOPE'].reply_to 
+				end.join(', ')
 				@cmessage.subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
@@ -899,6 +903,12 @@ module CampingAtMailbox
 						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
 					end
 				end if envelope.cc
+				p do
+					text "Reply to "
+					envelope.reply_to.each do |t|
+            cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+          end
+				end if envelope.reply_to and envelope.reply_to != envelope.from
 				p do
 					text "Also copies to "
 					envelope.bcc.each do |t|
