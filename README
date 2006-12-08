@@ -12,6 +12,8 @@
 - ruby-dbi
 	- dbd-sqlite3
 
+- net-ldap
+
 == Features
 
 - Manipulating messages:

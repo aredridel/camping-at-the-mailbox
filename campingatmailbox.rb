@@ -152,9 +152,8 @@ module CampingAtMailbox
 				ldap_search = ($config['ldapsearch'] || [name_attr]).map do |a|
 					"(#{a}=#{@pattern}*)"
 				end.join('|')
-				ldap.search($config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(',')), 
-					LDAP::LDAP_SCOPE_SUBTREE, ldap_search
-				) do |ent|
+				ldap_base = $config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(','))
+				ldap.search(:base => ldap_base, :filter => ldap_search).each do |ent|
 					@addresses << [ent[name_attr][0], ent[mail_attr][0]]
 				end
 				@addresses.sort! { |a,b| a[0] <=> b[0] }
@@ -346,7 +345,10 @@ module CampingAtMailbox
 					residentsession.clear
 					residentsession[:imap] = imap_connection
 					if $config['ldaphost']
-						residentsession[:ldap] = LDAP::Conn.new($config['ldaphost'].gsub('%{domain}', @state['domain']))
+						residentsession[:ldap] = Net::LDAP.new(
+						  :host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
+						  :port => $config['ldapport'] || 389
+						)
 					end
 					residentsession[:pinger] = Thread.new do 
 						while residentsession[:imap] and !imap.disconnected?
@@ -1252,7 +1254,7 @@ $config = YAML.load(File.read('mailbox.conf'))
 $db = DBI.connect($config['database'])
 $cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
 if $config['ldaphost']
-	require 'ldap'
+	require 'net/ldap'
 end
 
 if __FILE__ == $0
