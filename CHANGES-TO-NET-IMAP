@@ -1,0 +1,9 @@
+== in net/imap2
+
+- expansion of Net::IMAP::Address class to have convenience methods for
+various fields and subfields
+
+== TODO
+
+- add "string with encoding" class or "header field with encoding" class for
+MIME-encoded header fields
