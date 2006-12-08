@@ -6,6 +6,7 @@ require 'net/imap2'
 require 'net/smtp'
 require 'dbi'
 require 'stringio'
+require 'iconv'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 
@@ -81,6 +82,25 @@ module CampingAtMailbox
 
 		def finish_message(k)
 			residentsession[:composing_messages][k] = nil
+		end
+
+		def decode_header(h)
+			h.gsub(/=\?([^[:space:]]*?)\?([^[:space:]]*?)\?([^[:space:]]*?)\?=/) do |m|
+				charset = $1
+				enc = $2
+				value = $3
+				if enc.downcase == 'q'
+					value = value.unpack('M').first
+				elsif enc.downcase == 'b'
+					value = value.unpack('m').first
+				else
+					return h
+				end
+				if charset.downcase != 'utf-8'
+					value = Iconv.new('utf-8', charset).iconv(value)
+				end
+				value
+			end
 		end
 
 		def new_messageid
@@ -935,7 +955,7 @@ module CampingAtMailbox
 									text env.to[0..8].map { |to|
 										capture do
 											cite(:title => to.mailbox + '@' + to.host) do
-												to.name || to.mailbox 
+												decode_header(to.name || to.mailbox)
 											end 
 										end
 									}.join(', ')
@@ -946,7 +966,7 @@ module CampingAtMailbox
 								end
 								text 'From ' 
 								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
-									env.from[0].name || env.from[0].mailbox 
+									decode_header(env.from[0].name || env.from[0].mailbox)
 								end
 								span(:class => 'date') {
 									if env.date
@@ -960,7 +980,7 @@ module CampingAtMailbox
 								end
 							end
 							p.subject do
-								a(if !env.subject or env.subject.strip.empty? then 'no subject' else env.subject end, :href => R(Message, @mailbox, message.attr['UID']))
+								a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
 							end 
 						end
 						if @mailbox == 'Drafts'
@@ -982,35 +1002,35 @@ module CampingAtMailbox
 				p do 
 					text "From " 
 					envelope.from.each do |f|
-						cite(:title => f.mailbox + '@' + f.host) { f.name || f.mailbox }
+						cite(:title => f.mailbox + '@' + f.host) { decode_header(f.name || f.mailbox) }
 					end
 					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
 				end if envelope.from
 				p do
 					text "To "
 					envelope.to.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
 					end
 				end if envelope.to
 				p do
 					text "Carbon copies to "
 					envelope.cc.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
 					end
 				end if envelope.cc
 				p do
 					text "Reply to "
 					envelope.reply_to.each do |t|
-            cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+            cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
           end
 				end if envelope.reply_to and envelope.reply_to != envelope.from
 				p do
 					text "Also copies to "
 					envelope.bcc.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { t.name || t.mailbox }
+						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
 					end
 				end if envelope.bcc
-				p.subject envelope.subject
+				p.subject decode_header(envelope.subject)
 				_messagecontrols if controls
 			end
 		end
