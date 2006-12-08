@@ -712,23 +712,28 @@ module CampingAtMailbox
 					imap.append("Drafts", m)
 					redirect R(Mailbox, 'Drafts')
 				else			
-					Net::SMTP.start($config['smtphost'].gsub('%{domain}', @state['domain']), $config['smtpport'].to_i, 
-						'localhost', 
-						@state['from'], @state['password'], :plain) do |smtp|
-							@results = smtp.open_message_stream(@state['from'], 
-								[@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
-									Net::IMAP::Address.parse(a.strip).email 
-								end
-							) do |out|
-								output_message_to(out)
-								msg = ''
-								# FIXME, big attachments should totally cause huge core growth
-								o = StringIO.new(msg)
-								output_message_to(o)
-								imap.append("Sent", msg, [:Seen], Time.now)
-							end
-							@cmessage = nil
-							finish_message(@messageid)
+					connect_params = [
+						$config['smtphost'].gsub('%{domain}', @state['domain']), 
+						$config['smtpport'].to_i,
+						env['HTTP_HOST'].split(':').first
+					]
+					if $config['smtpauth']
+						connect_params += [@state['username'], @state['password'], :plain]
+					end
+					Net::SMTP.start(*connect_params) do |smtp|
+						recips = [@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
+							Net::IMAP::Address.parse(a.strip).email 
+						end
+						@results = smtp.open_message_stream(@state['from'], recips) do |out|
+							output_message_to(out)
+							msg = ''
+							# FIXME, big attachments should totally cause huge core growth
+							o = StringIO.new(msg)
+							output_message_to(o)
+							imap.append("Sent", msg, [:Seen], Time.now)
+						end
+						@cmessage = nil
+						finish_message(@messageid)
 					end
 				
 					render :sent
@@ -1255,6 +1260,9 @@ $db = DBI.connect($config['database'])
 $cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
 if $config['ldaphost']
 	require 'net/ldap'
+end
+if $config['smtptls']
+	require 'net/smtp_tls'
 end
 
 if __FILE__ == $0

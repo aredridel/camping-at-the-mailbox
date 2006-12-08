@@ -1,6 +1,7 @@
 imaphost: mail.%{domain}
 smtphost: mail.%{domain}
 smtpport: 587
+smtpauth: true
 ldaphost: ldap.%{domain}
 ldapbase: ou=Users,%{domain}
 ldapmailattr: uid

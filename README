@@ -41,6 +41,12 @@ supplied username, or a guess from the HTTP host.
 ports are connected to. Ruby's Net::IMAP module will use SSL on port 993 for 
 IMAP.
 
+<code>smtpauth</code>, if present, will authenticate submissions to the SMTP
+server with the same credentials used for IMAP
+
+<code>smtptls</code>, if present, will force all SMTP connections to begin
+with STARTLS (unconditionally at the moment)
+
 <code>ldaphost</code> will activate LDAP directory lookups, and takes a
 %{domain} token as well.  <code>ldapbase</code> will choose the base DN to
 search in an LDAP directory, and will expand <code>%{domain}</code> into 
