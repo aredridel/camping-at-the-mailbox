@@ -1145,10 +1145,18 @@ module CampingAtMailbox
 		end
 
 		def sent
-			p 'Your mail was sent'
+			p.controls do
+				a('Compose a Message', :href => R(Compose, nil))
+				a('Create Mailbox', :href => R(CreateMailbox)) 
+				a('Address Book', :href => R(Addresses))
+				a('Log Out', :href => R(Logout))
+			end
+			h1 'Your mail was sent'
 			@results.each do |r|
 				p r
 			end
+
+			p { a('Continue', :href => R(Mailbox, 'INBOX')) }
 		end
 
 		def messagepart
