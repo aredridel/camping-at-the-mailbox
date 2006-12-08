@@ -1028,27 +1028,39 @@ module CampingAtMailbox
 					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
 				end if envelope.from
 				p do
-					text "To "
-					envelope.to.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+					begin
+						text "To "
+						envelope.to.each do |t|
+							cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+						end
+					rescue
 					end
 				end if envelope.to
 				p do
-					text "Carbon copies to "
-					envelope.cc.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+					begin
+						text "Carbon copies to "
+						envelope.cc.each do |t|
+							cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+						end
+					rescue
 					end
 				end if envelope.cc
 				p do
-					text "Reply to "
-					envelope.reply_to.each do |t|
-            cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
-          end
+					begin
+						text "Reply to "
+						envelope.reply_to.each do |t|
+							cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+						end
+					rescue
+					end
 				end if envelope.reply_to and envelope.reply_to != envelope.from
 				p do
-					text "Also copies to "
-					envelope.bcc.each do |t|
-						cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+					begin
+						text "Also copies to "
+						envelope.bcc.each do |t|
+							cite(:title => t.mailbox + '@' + t.host) { decode_header(t.name || t.mailbox) }
+						end
+					rescue
 					end
 				end if envelope.bcc
 				p.subject decode_header(envelope.subject)
