@@ -69,6 +69,10 @@ module CampingAtMailbox
 			residentsession[:ldap]
 		end
 
+		def ldap_base
+			$config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(','))
+		end
+
 		def composing_messages(k)
 			if !residentsession[:composing_messages]
 				residentsession[:composing_messages] = Hash.new 
@@ -152,7 +156,6 @@ module CampingAtMailbox
 				ldap_search = ($config['ldapsearch'] || [name_attr]).map do |a|
 					"(#{a}=#{@pattern}*)"
 				end.join('|')
-				ldap_base = $config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(','))
 				ldap.search(:base => ldap_base, :filter => ldap_search).each do |ent|
 					@addresses << [ent[name_attr][0], ent[mail_attr][0]]
 				end
