@@ -336,7 +336,8 @@ module CampingAtMailbox
 				end
 				imap_connection = Net::IMAP.new(
 					($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']), 
-					($config['imapport'] || 143).to_i
+					($config['imapport'] || 143).to_i,
+					($config['imapssl'] || false)
 				)
 				caps = imap_connection.capability
 				begin
