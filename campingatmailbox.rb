@@ -353,7 +353,7 @@ module CampingAtMailbox
 							:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
 							:port => $config['ldapport'] || 389
 						)
-						ldap_filter = "(#{$config['ldapdnattr'] || 'dn'}=#{input.username})"
+						ldap_filter = "(#{$config['ldaprdnattr'] || 'dn'}=#{input.username})"
 						mail_attr = $config['ldapmailattr'] || 'mail'
 						name_attr = $config['ldapnameattr'] || 'cn'
 						ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
