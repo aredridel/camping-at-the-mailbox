@@ -5,6 +5,7 @@ smtpauth: true
 ldaphost: ldap.%{domain}
 ldapbase: ou=Users,%{domain}
 ldapmailattr: uid
+ldapdnattr: uid
 banner: Username guest@theinternetco.net password Aeco3ahr
 database: dbi:SQlite3:campingatmailbox.db
 

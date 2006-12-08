@@ -51,12 +51,21 @@ server with the same credentials used for IMAP
 with STARTLS (unconditionally at the moment)
 
 <code>ldaphost</code> will activate LDAP directory lookups, and takes a
-%{domain} token as well.  <code>ldapbase</code> will choose the base DN to
-search in an LDAP directory, and will expand <code>%{domain}</code> into 
-LDAP DN form (<code>dc=example,dc=org</code>). <code>ldapmailattr</code>
-specifies the attribute to use as the email address, and
-<code>ldapnameattr</code> specifies the attribute to use as the user's name.
+%{domain} token as well.
+
 <code>ldapport</code> selects the port to connect to.
+
+<code>ldapbase</code> will choose the base DN to search in an LDAP directory,
+and will expand <code>%{domain}</code> into LDAP DN form 
+(<code>dc=example,dc=org</code>). 
+
+<code>ldapmailattr</code> specifies the attribute to use as the email 
+address.
+
+<code>ldapnameattr</code> specifies the attribute to use as the user's name.
+
+<code>ldaprdnattr</code> specifies the attribute to use to look up a user
+by RDN
 
 Make sure that both the name and mail attributes are mandatory in your LDAP
 schema.
