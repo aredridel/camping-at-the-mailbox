@@ -140,11 +140,11 @@ module CampingAtMailbox
 			@addresses = []
 			if pattern
 				st = ('SELECT name, address FROM addresses WHERE user_id = ? AND (name like ? OR address like ?) ORDER BY name, address')
-			rh = $db.execute(st, @state['from'])
-				rh = $db.execute(st, @state['from'], "#{pattern}%", "#{pattern}%")
+			rh = $db.execute(st, @state['from'].email)
+				rh = $db.execute(st, @state['from'].email, "#{pattern}%", "#{pattern}%")
 			else
 				st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
-				rh = $db.execute(st, @state['from'])
+				rh = $db.execute(st, @state['from'].email)
 			end
 			rh.fetch do |name,address|
 				@addresses << [name,address]
@@ -329,10 +329,10 @@ module CampingAtMailbox
 			def post
 				if /@/ === input.username
 					@state['domain'] = input.username.split('@').last
-					@state['from'] = input.username
+					@state['from'] = Net::IMAP::Address.parse(input.username)
 				else
 					@state['domain'] = env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
-					@state['from'] = input.username + '@' + @state['domain']
+					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
 				end
 				imap_connection = Net::IMAP.new(
 					($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']), 
@@ -350,9 +350,19 @@ module CampingAtMailbox
 					residentsession[:imap] = imap_connection
 					if $config['ldaphost']
 						residentsession[:ldap] = Net::LDAP.new(
-						  :host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
-						  :port => $config['ldapport'] || 389
+							:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
+							:port => $config['ldapport'] || 389
 						)
+						ldap_filter = "(#{$config['ldapdnattr'] || 'dn'}=#{input.username})"
+						mail_attr = $config['ldapmailattr'] || 'mail'
+						name_attr = $config['ldapnameattr'] || 'cn'
+						ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
+							@state['from'] = if ent[name_attr]
+								Net::IMAP::Address.parse("#{ent[name_attr][0]} <#{ent[mail_attr][0]}>")
+							else
+								Net::IMAP::Address.parse("#{ent[mail_attr][0]}")
+							end
+						end
 					end
 					residentsession[:pinger] = Thread.new do 
 						while residentsession[:imap] and !imap.disconnected?
@@ -728,7 +738,7 @@ module CampingAtMailbox
 						recips = [@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
 							Net::IMAP::Address.parse(a.strip).email 
 						end
-						@results = smtp.open_message_stream(@state['from'], recips) do |out|
+						@results = smtp.open_message_stream(@state['from'].email, recips) do |out|
 							output_message_to(out)
 							msg = ''
 							# FIXME, big attachments should totally cause huge core growth
@@ -756,7 +766,7 @@ module CampingAtMailbox
 				@errors = []
 				fetch_addresses
 				if /@/ === input.address
-					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['from'])
+					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['from'].email)
 					redirect R(Addresses)
 				else
 					@errors << "That didn't look like an email address -- it's gotta at least have an @"
@@ -784,7 +794,7 @@ module CampingAtMailbox
 			end
 
 			def post(address)
-				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['from'], address)
+				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['from'].email, address)
 				redirect R(Addresses)
 			end
 		end
