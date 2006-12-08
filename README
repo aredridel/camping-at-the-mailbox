@@ -53,6 +53,7 @@ search in an LDAP directory, and will expand <code>%{domain}</code> into
 LDAP DN form (<code>dc=example,dc=org</code>). <code>ldapmailattr</code>
 specifies the attribute to use as the email address, and
 <code>ldapnameattr</code> specifies the attribute to use as the user's name.
+<code>ldapport</code> selects the port to connect to.
 
 Make sure that both the name and mail attributes are mandatory in your LDAP
 schema.
