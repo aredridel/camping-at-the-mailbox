@@ -632,8 +632,8 @@ module CampingAtMailbox
 			end
 		end
 
-		class Reply < R '/mailboxes/(.*)/m(\d+)/reply'
-			def get(mailbox, uid)
+		class Reply < R '/mailboxes/(.*)/m(\d+)/reply(.*)'
+			def get(mailbox, uid, mode)
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@messageid = new_messageid
@@ -642,11 +642,26 @@ module CampingAtMailbox
 				fetch_structure
 				fetch_body_quoted
 
-				@cmessage.to = if @message.attr['ENVELOPE'].reply_to.empty? 
-					@message.attr['ENVELOPE'].from 
+				recips = if @message.attr['ENVELOPE'].reply_to.empty? 
+					envelope.from 
 				else
-					@message.attr['ENVELOPE'].reply_to 
-				end.join(', ')
+					envelope.reply_to 
+				end
+	
+				if mode == 'all'
+					if envelope.to
+						recips += envelope.to 
+					end
+					if envelope.cc
+						recips += envelope.cc 
+					end
+					if envelope.bcc
+						recips += envelope.bcc 
+					end
+					recips.uniq!
+				end
+
+				@cmessage.to = recips.select { |e| e.email != @state['from'].email }.join(', ')
 				@cmessage.subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
@@ -1064,7 +1079,8 @@ module CampingAtMailbox
 					end
 				end if envelope.bcc
 				p.subject decode_header(envelope.subject)
-				_messagecontrols if controls
+				_messagecontrols([envelope.to, envelope.cc, envelope.bcc, envelope.reply_to, envelope.from].flatten.select { |e| e and e.email != @state['from'].email }.uniq.size > 1)
+
 			end
 		end
 
@@ -1074,9 +1090,12 @@ module CampingAtMailbox
 			p.fin '❧'
 		end
 
-		def _messagecontrols
+		def _messagecontrols(multiple_recipients = false)
 			p.controls do
-				a 'reply', :href => R(Reply, @mailbox, uid)
+				a 'reply', :href => R(Reply, @mailbox, uid, nil)
+				if multiple_recipients
+					a '(to all)', :href => R(Reply, @mailbox, uid, 'all')
+				end
 				a 'forward', :href => R(Forward, @mailbox, uid)
 				a 'delete', :href => R(DeleteMessage, @mailbox, uid)
 				a 'move', :href => R(MoveMessage, @mailbox, uid)
