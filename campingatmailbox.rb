@@ -133,7 +133,7 @@ module CampingAtMailbox
 			else
 				@structure
 			end
-			@cmessage.body = WordWrapper.wrap(imap.uid_fetch(@uid, "BODY[#{part.part_id}]").first.attr["BODY[#{part.part_id}]"]).gsub(/^/, '> ')
+			@cmessage.body = WordWrapper.wrap(decode(part)).gsub(/^/, '> ')
 		end
 
 		def fetch_addresses(pattern = nil)
@@ -198,9 +198,9 @@ module CampingAtMailbox
 		def decode(structure)
 			case structure.encoding
 			when 'BASE64'
-				@parts[structure.part_id].unpack('m*')
+				@parts[structure.part_id].unpack('m*').first
 			when 'QUOTED-PRINTABLE'
-				@parts[structure.part_id].gsub(/\r\n/, "\n").unpack('M*')
+				@parts[structure.part_id].gsub(/\r\n/, "\n").unpack('M*').first
 			else @parts[structure.part_id]
 			end
 		end
@@ -1133,8 +1133,23 @@ module CampingAtMailbox
 					end
 				end
 			when Net::IMAP::BodyTypeText
-				pre do
-					capture { WordWrapper.wrap(decode(structure)).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
+				part = decode(structure)
+				if structure.param['CHARSET'] and structure.param['CHARSET'].downcase != 'utf-8'
+					part = Iconv.new('utf-8', structure.param['CHARSET'].downcase).iconv(part)
+				end
+				case structure.subtype
+				when 'PLAIN'
+					pre do
+						capture { WordWrapper.wrap(part).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
+					end
+				when 'HTML'
+					pre do
+						capture { WordWrapper.wrap(part) }
+					end
+				else
+					pre do
+						capture { WordWrapper.wrap(part).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
+					end
 				end
 			else
 				_messagepartheader(structure)
