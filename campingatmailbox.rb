@@ -667,7 +667,7 @@ module CampingAtMailbox
 				end
 
 				@cmessage.to = recips.select { |e| e.email != @state['from'].email }.join(', ')
-				@cmessage.subject = 'Re: ' << (@message.attr['ENVELOPE'].subject || '')
+				@cmessage.subject = 'Re: ' << decode_header(@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
 		end
@@ -681,7 +681,7 @@ module CampingAtMailbox
 				select_mailbox(mailbox)
 				fetch_structure
 				fetch_body_quoted
-				@cmessage.subject = 'Fw: ' << (@message.attr['ENVELOPE'].subject || '')
+				@cmessage.subject = 'Fw: ' << decode_header(@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
 		end
