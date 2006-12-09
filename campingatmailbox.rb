@@ -100,8 +100,12 @@ module CampingAtMailbox
 				else
 					return h
 				end
-				if charset.downcase != 'utf-8'
-					value = Iconv.new('utf-8', charset).iconv(value)
+				begin
+					if charset.downcase != 'utf-8'
+						value = Iconv.new('utf-8', charset).iconv(value)
+					end
+				rescue Iconv::IllegalSequence
+					return h
 				end
 				value
 			end
@@ -1154,7 +1158,11 @@ module CampingAtMailbox
 			when Net::IMAP::BodyTypeText
 				part = decode(structure)
 				if structure.param['CHARSET'] and structure.param['CHARSET'].downcase != 'utf-8'
-					part = Iconv.new('utf-8', structure.param['CHARSET'].downcase).iconv(part)
+					begin
+						part = Iconv.new('utf-8', structure.param['CHARSET'].downcase).iconv(part)
+					rescue Iconv::IllegalSequence
+						part
+					end
 				end
 				case structure.subtype
 				when 'PLAIN'
