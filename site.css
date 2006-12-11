@@ -1,14 +1,14 @@
 body {
 	font-family: Gentium, Palatino, Palladio, serif;
-	background-color: #df7;
-	color: #452;
+	background-color: #8eaed4;
+	color: #020203;
 	margin-left: 1in;
 	margin-top: 1in;
 	margin-right: 2in;
 	margin-bottom: 1in;
 }	
-a { color: #573; }
-a:visited { color: #341; }
+a { color: #050509; }
+a:visited { color: #202030; }
 a:active { color: #900; }
 .header p { margin: 0; padding: 0; }
 .header p.subject { text-indent: 1em; }
