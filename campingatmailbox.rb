@@ -1008,7 +1008,7 @@ module CampingAtMailbox
 								text 'From ' 
 								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
 									decode_header(env.from[0].name || env.from[0].mailbox)
-								end
+								end if env.from
 								span(:class => 'date') {
 									if env.date
 										Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M')
