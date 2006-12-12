@@ -247,8 +247,8 @@ module CampingAtMailbox
 			out.puts "Subject: #{@cmessage.subject}"
 			out.puts "Date: #{Time.now.rfc822}"
 			if @cmessage.attachments.size == 0
-				out.puts ""
 				out.puts "Content-Type: text/plain; charset=UTF-8"
+				out.puts ""
 				out.puts "#{@cmessage.body}"
 			else
 				boundary = "=_#{Time.now.to_i.to_s}"
