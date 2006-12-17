@@ -293,7 +293,7 @@ module CampingAtMailbox
 			prior = current - 1
 			nxt = current + 1
 			p "Page #{current} of #{pages}"
-			p do
+			p.controls do
 				if prior > 0
 					a("Previous #{n}", :href => R(controller, *args) << "?page=#{prior}")
 				end
@@ -440,13 +440,13 @@ module CampingAtMailbox
 				@total = residentsession[:uidlist].length
 				if @input.page.to_i > 0 
 					@page = @input.page.to_i
-					start = (@page - 1) * 10
-					fin = if @page * 10 > @total then @total else @page * 10 end
+					start = (@page - 1) * 25
+					fin = if @page * 25 > @total then @total else @page * 25 end
 				else
 					@page = 1
 					start = 0
-					fin = if @total > 10
-						10
+					fin = if @total > 25
+						25
 					else
 						@total
 					end
@@ -1058,7 +1058,7 @@ module CampingAtMailbox
 					input :type=>'submit', :name => 'action', :value => 'Delete Selected'
 				end
 			end
-			Pager(Mailbox, @page, @total, 10, @mailbox)
+			Pager(Mailbox, @page, @total, 25, @mailbox)
 		end
 
 		def _messageheader(envelope, controls = false)
