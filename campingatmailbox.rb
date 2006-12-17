@@ -461,6 +461,22 @@ module CampingAtMailbox
 				end
 				render :mailbox
 			end
+
+			def post(mailbox)
+				if input.action =~ /Delete/
+					if Array === input.message
+						@messages = input.message
+					else
+						@messages = [input.message]
+					end
+				end
+				@input = imap.uid_store(@messages.map { |e| e.to_i }, '+FLAGS', [:Deleted])
+				@messages.each do |e|
+					residentsession[:uidlist].delete(e.to_i)
+				end
+				
+				redirect R(Mailbox, mailbox)
+			end
 		end
 
 		# A snappily dressed mailman stands over a postal scale in the front
@@ -985,20 +1001,26 @@ module CampingAtMailbox
 				p "No messages"
 				return
 			end
-			table do
-				@messages.each do |message|
-					env = message.attr['ENVELOPE']
-					flags = message.attr['FLAGS']
-					tr(:class => 'header') do
-						td do
-							p.envelope do 
-								if @mailbox == 'Drafts' and env.to
-									text 'To ' 
-									text env.to[0..8].map { |to|
-										capture do
-											cite(:title => to.mailbox + '@' + to.host) do
-												decode_header(to.name || to.mailbox)
-											end 
+			form(:action => R(Mailbox, @mailbox), :method => 'post') do
+				table do
+					@messages.each do |message|
+						env = message.attr['ENVELOPE']
+						flags = message.attr['FLAGS']
+						tr(:class => 'header') do
+							td do
+								p.envelope do 
+									input :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
+									if @mailbox == 'Drafts' and env.to
+										text 'To ' 
+										text env.to[0..8].map { |to|
+											capture do
+												cite(:title => to.mailbox + '@' + to.host) do
+													decode_header(to.name || to.mailbox)
+												end 
+											end
+										}.join(', ')
+										if env.to.length > 9
+											text ", more..."
 										end
 									}.join(', ')
 									if env.to.length > 9
@@ -1034,6 +1056,9 @@ module CampingAtMailbox
 							end
 						end
 					end
+				end
+				p do
+					input :type=>'submit', :name => 'action', :value => 'Delete Selected'
 				end
 			end
 			Pager(Mailbox, @page, @total, 10, @mailbox)
