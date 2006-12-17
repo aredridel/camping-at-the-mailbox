@@ -1022,26 +1022,26 @@ module CampingAtMailbox
 										if env.to.length > 9
 											text ", more..."
 										end
-									}.join(', ')
-									if env.to.length > 9
-										text ", more..."
+										br
 									end
-									br
-								end
-								text 'From ' 
-								cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
-									decode_header(env.from[0].name || env.from[0].mailbox)
-								end if env.from
-								span(:class => 'date') {
-									if env.date
-										Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M')
-									else
-										'(no date)'
+									text 'From ' 
+									cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
+										decode_header(env.from[0].name || env.from[0].mailbox)
+									end if env.from
+									span(:class => 'date') {
+										if env.date
+											Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M')
+										else
+											'(no date)'
+										end
+									}
+									if !flags.empty? then
+										flags.map { |e| Flagnames[e] }.join(', ')
 									end
-								}
-								if !flags.empty? then
-									flags.map { |e| Flagnames[e] }.join(', ')
 								end
+								p.subject do
+									a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
+								end 
 							end
 							p.subject do
 								a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
