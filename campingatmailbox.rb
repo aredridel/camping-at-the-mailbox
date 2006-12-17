@@ -1043,15 +1043,12 @@ module CampingAtMailbox
 									a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
 								end 
 							end
-							p.subject do
-								a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
-							end 
-						end
-						if @mailbox == 'Drafts'
-							td do
-								form :action => R(Compose, nil), :method => 'post' do
-									input :type => 'hidden', :name => 'uid', :value => message.attr['UID']
-									input :type => 'submit', :value => "Edit"
+							if @mailbox == 'Drafts'
+								td do
+									form :action => R(Compose, nil), :method => 'post' do
+										input :type => 'hidden', :name => 'uid', :value => message.attr['UID']
+										input :type => 'submit', :value => "Edit"
+									end
 								end
 							end
 						end
