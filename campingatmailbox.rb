@@ -317,7 +317,7 @@ module CampingAtMailbox
 	module Controllers
 		class Index < R '/'
 			def get
-				if imap
+				if imap and !imap.disconnected?
 					redirect Mailboxes
 				else
 					redirect Login
