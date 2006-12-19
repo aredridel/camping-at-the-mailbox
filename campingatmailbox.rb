@@ -663,11 +663,15 @@ module CampingAtMailbox
 			def post(mailbox)
 				@mailbox = mailbox
 				select_mailbox(@mailbox)
-				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['BODY', e] }.flatten)
-				@search_id = new_messageid
-				(residentsession[:searchresults] ||= Hash.new)[@search_id] = uids
-				(residentsession[:searchmailboxes] ||= Hash.new)[@search_id] = @mailbox
-				redirect R(SearchResults, @search_id)
+				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['OR', 'BODY', e, 'SUBJECT', e, 'FROM', e] }.flatten + ['UNDELETED'])
+				if !uids.empty?
+					@search_id = new_messageid
+					(residentsession[:searchresults] ||= Hash.new)[@search_id] = uids
+					(residentsession[:searchmailboxes] ||= Hash.new)[@search_id] = @mailbox
+					redirect R(SearchResults, @search_id)
+				else
+					render :no_results
+				end
 			end
 		end
 
@@ -1325,6 +1329,10 @@ module CampingAtMailbox
 					input :type => 'submit', :name => 'action', :value => 'Attach More Files' 
 				end
 			end
+		end
+
+		def no_results
+			p 'Nothing found'
 		end
 		
 		def showinput
