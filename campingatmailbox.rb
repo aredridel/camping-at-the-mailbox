@@ -89,6 +89,22 @@ module CampingAtMailbox
 			residentsession[:composing_messages][k] = nil
 		end
 
+		def setup_pager
+			if @input.page.to_i > 0 
+				@page = @input.page.to_i
+				@start = (@page - 1) * 25
+				@fin = if @page * 25 > @total then @total else @page * 25 end
+			else
+				@page = 1
+				@start = 0
+				@fin = if @total > 25
+					25
+				else
+					@total
+				end
+			end
+		end
+
 		def decode_header(h)
 			h.gsub(/=\?([^[:space:]]*?)\?([^[:space:]]*?)\?([^[:space:]]*?)\?=/) do |m|
 				charset = $1
@@ -429,6 +445,7 @@ module CampingAtMailbox
 			#
 			def get(mb)
 				@mailbox = mb
+				@class = Mailbox
 				select_mailbox(mb)
 				if !residentsession[:uidlist]
 					if residentsession[:usesort]
@@ -438,22 +455,10 @@ module CampingAtMailbox
 					end
 				end
 				@total = residentsession[:uidlist].length
-				if @input.page.to_i > 0 
-					@page = @input.page.to_i
-					start = (@page - 1) * 25
-					fin = if @page * 25 > @total then @total else @page * 25 end
-				else
-					@page = 1
-					start = 0
-					fin = if @total > 25
-						25
-					else
-						@total
-					end
-				end
+				setup_pager
 				if @total > 0 
 					# UGLY
-					@messageset = residentsession[:uidlist][start..fin]
+					@messageset = residentsession[:uidlist][@start..@fin]
 					@messages = imap.uid_fetch(@messageset, ['FLAGS', 'ENVELOPE', 'UID'])
 					if residentsession[:usesort]
 						@messages = @messages.sort_by { |e| @messageset.index(e.attr['UID']) }
@@ -651,6 +656,31 @@ module CampingAtMailbox
 				@cmessage.bcc = envelope.bcc.map { |e| e.to_s }.join(', ') if envelope.bcc
 				# FIXME: handle attachments
 				redirect R(Compose, @messageid)
+			end
+		end
+
+		class Search < R '/search/([^/]*)'
+			def post(mailbox)
+				@mailbox = mailbox
+				select_mailbox(@mailbox)
+				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['BODY', e] }.flatten)
+				@search_id = new_messageid
+				(residentsession[:searchresults] ||= Hash.new)[@search_id] = uids
+				(residentsession[:searchmailboxes] ||= Hash.new)[@search_id] = @mailbox
+				redirect R(SearchResults, @search_id)
+			end
+		end
+
+		class SearchResults < R '/search/result/(.*)'
+			def get(search_id)
+				@class = SearchResults
+				@search_id = search_id
+				@results = residentsession[:searchresults][@search_id]
+				@mailbox = residentsession[:searchmailboxes][@search_id]
+				@total = @results.length
+				setup_pager
+				@messages = imap.uid_fetch(@results[@start..@fin], ['FLAGS', 'ENVELOPE', 'UID'])
+				render :mailbox
 			end
 		end
 
@@ -989,12 +1019,21 @@ module CampingAtMailbox
 			end
 		end
 
+		def searchresults
+			@results.each do |uid|
+				p uid
+			end
+		end
+
 		def mailbox
-			p.controls do
-				a('Compose a Message', :href => R(Compose, nil))
-				a('Mailbox List', :href => R(Mailboxes))
-				a('Address Book', :href => R(Addresses))
-				a('Log Out', :href => R(Logout))
+			form.search :action => R(Search, @mailbox), :method => 'post' do 
+				p.controls do
+					a('Compose a Message', :href => R(Compose, nil))
+					a('Mailbox List', :href => R(Mailboxes))
+					a('Address Book', :href => R(Addresses))
+					a('Log Out', :href => R(Logout))
+					input :name=>'search', :type=>'text'
+				end
 			end
 			h1 "#{@mailbox} (#{@total} total)"
 			if @total == 0
@@ -1058,7 +1097,7 @@ module CampingAtMailbox
 					input :type=>'submit', :name => 'action', :value => 'Delete Selected'
 				end
 			end
-			Pager(Mailbox, @page, @total, 25, @mailbox)
+			Pager(@class, @page, @total, 25, if @class == Mailbox: @mailbox else @search_id end)
 		end
 
 		def _messageheader(envelope, controls = false)
