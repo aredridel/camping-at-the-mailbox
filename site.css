@@ -17,6 +17,7 @@ p.messagepartheader { margin-bottom: 0;}
 .error { color: #900 }
 .message { margin-left: 2em; }
 .fin { text-indent: 2in; }
+.search { white-space: nowrap; }
 ul.folderlist { list-style: none outside; padding: 0;}
 .autocomplete { background-color: #FFF; 
 	color: #573; border: 1px solid #888; }

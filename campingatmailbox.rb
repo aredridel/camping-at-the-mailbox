@@ -1026,13 +1026,13 @@ module CampingAtMailbox
 		end
 
 		def mailbox
-			form.search :action => R(Search, @mailbox), :method => 'post' do 
+			form :action => R(Search, @mailbox), :method => 'post' do 
 				p.controls do
 					a('Compose a Message', :href => R(Compose, nil))
 					a('Mailbox List', :href => R(Mailboxes))
 					a('Address Book', :href => R(Addresses))
 					a('Log Out', :href => R(Logout))
-					input :name=>'search', :type=>'text'
+					label.search { text "Search "; input.search :name=>'search', :type=>'text' }
 				end
 			end
 			h1 "#{@mailbox} (#{@total} total)"
