@@ -1050,7 +1050,7 @@ module CampingAtMailbox
 						env = message.attr['ENVELOPE']
 						flags = message.attr['FLAGS']
 						tr(:class => 'header') do
-							td do
+							td(:class => if flags.include? :Seen then 'seen' else 'unseen' end) do
 								p.envelope do 
 									input :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
 									if @mailbox == 'Drafts' and env.to
