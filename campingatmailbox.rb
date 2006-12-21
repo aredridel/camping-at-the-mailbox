@@ -217,6 +217,10 @@ module CampingAtMailbox
 		end
 
 		def decode(structure)
+			# FIXME: handle multipart messages way better than this.
+			if !structure.respond_to? :encoding
+				return @parts[structure.part_id]
+			end
 			case structure.encoding
 			when 'BASE64'
 				@parts[structure.part_id].unpack('m*').first
