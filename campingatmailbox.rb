@@ -8,6 +8,7 @@ require 'net/smtp'
 require 'dbi'
 require 'stringio'
 require 'iconv'
+require 'hpricot'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
 
@@ -1241,8 +1242,16 @@ module CampingAtMailbox
 						capture { WordWrapper.wrap(part).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
 					end
 				when 'HTML'
-					pre do
-						capture { WordWrapper.wrap(part) }
+					div.htmlmessage do
+						capture do
+							if b = Hpricot(part, :fixup_tags => true).at('body')
+								b.stag.name = 'div'
+								b.etag = Hpricot::ETag.new('div')
+								b
+							else
+								Hpricot(part, :fixup_tags => true)
+							end
+						end
 					end
 				else
 					pre do
