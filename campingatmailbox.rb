@@ -1118,7 +1118,7 @@ module CampingAtMailbox
 					envelope.from.each do |f|
 						cite(:title => f.mailbox + '@' + f.host) { decode_header(f.name || f.mailbox) }
 					end
-					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none')
+					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none') if envelope.date
 				end if envelope.from
 				p do
 					begin
