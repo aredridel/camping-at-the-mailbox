@@ -940,6 +940,8 @@ module CampingAtMailbox
 							:href => R(Style, 'site')
 					script :src => R(Scripts, 'prototype'), :type => 'text/javascript'
 					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript'
+					script :src => R(Scripts, 'behaviour'), :type => 'text/javascript'
+					script :src => R(Scripts, 'site'), :type => 'text/javascript'
 				end
 				body do
 					#h1.header { a 'Mail?', :href => R(Index) }
@@ -1057,7 +1059,7 @@ module CampingAtMailbox
 						tr(:class => 'header') do
 							td(:class => if flags.include? :Seen then 'seen' else 'unseen' end) do
 								p.envelope do 
-									input :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
+									input.controls :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
 									if @mailbox == 'Drafts' and env.to
 										text 'To ' 
 										text env.to[0..8].map { |to|
@@ -1102,7 +1104,7 @@ module CampingAtMailbox
 						end
 					end
 				end
-				p do
+				p.controls :id=>'selected_message_controls' do
 					input :type=>'submit', :name => 'action', :value => 'Delete Selected'
 				end
 			end
