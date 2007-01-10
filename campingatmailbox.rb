@@ -1281,7 +1281,7 @@ module CampingAtMailbox
 				case structure.subtype
 				when 'PLAIN'
 					pre do
-						capture { WordWrapper.wrap(part).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
+						capture { WordWrapper.wrap(part).gsub(%r{(https?://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
 					end
 				when 'HTML'
 					div.htmlmessage do
