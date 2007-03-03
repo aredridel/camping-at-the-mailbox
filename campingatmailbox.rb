@@ -1,7 +1,6 @@
 #!/usr/bin/ruby
 
 require 'camping'
-require 'fastthread'
 require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
