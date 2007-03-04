@@ -672,6 +672,9 @@ module CampingAtMailbox
 				end
 				@messageid = messageid
 				@cmessage = composing_messages(messageid)
+				if (!@cmessage.to or @cmessage.to.empty?) and @input.to
+					@cmessage.to = @input.to
+				end
 				render :compose
 			end
 			def post(messageid)
@@ -944,7 +947,10 @@ module CampingAtMailbox
 					tr do
 						td name
 						td address
-						td { a('delete', :href => R(DeleteAddress, address)) } 
+						td do
+							a('delete', :href => R(DeleteAddress, address))
+							a('compose', :href => R(Compose, nil, {:to => "#{name} <#{address}>"}))
+						end 
 					end
 				end
 			
