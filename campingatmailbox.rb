@@ -29,6 +29,47 @@ class Net::IMAP
 	end
 end
 
+class ReconnectingIMAP
+	def initialize(*args)
+		@initargs = args
+		@connection = Net::IMAP.new(*args)
+	end
+
+	def login(*args)
+		@loginargs = args
+		@loginmethod = :authenticate
+		@connection.send(:login, *args)
+	end
+
+	def select(*args)
+		@selectargs = *args
+		@connection.send(:select, *args)
+	end
+
+	def authenticate(*args)
+		@loginargs = args
+		@loginmethod = :authenticate
+		@connection.send(:authenticate, *args)
+	end
+
+	def method_missing(*args, &block)
+		tries = 0
+		begin
+			@connection.send(*args, &block)
+		rescue IOError
+			if tries == 0
+				tries += 1
+				initialize(*@initargs)
+				send(@loginmethod, *@loginargs)
+				select(*@selectargs) if @selectargs
+				retry
+			else
+				raise
+			end
+		end
+	end
+end
+
 class Net::IMAP::Address
 	def to_s
 		if name
@@ -360,7 +401,7 @@ module CampingAtMailbox
 					@state['domain'] = env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
 					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
 				end
-				imap_connection = Net::IMAP.new(
+				imap_connection = ReconnectingIMAP.new(
 					($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']), 
 					($config['imapport'] || 143).to_i,
 					($config['imapssl'] || false)
