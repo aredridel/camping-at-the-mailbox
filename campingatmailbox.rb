@@ -109,7 +109,9 @@ module CampingAtMailbox
 
 	module Helpers
 		def imap
-			residentsession[:imap] ||= @state['imapconnection'].dup
+			if @state['imapconnection'] and !residentsession[:imap]
+				residentsession[:imap] = @state['imapconnection'].dup
+			end
 			residentsession[:imap]
 		end
 
@@ -183,7 +185,7 @@ module CampingAtMailbox
 			extension = file.split('.').last
 			@headers['Content-Type'] = Filetypes[extension] || 'text/plain'
 			@headers['Last-Modified'] = File.stat(file).mtime.rfc2822
-			@body = File.open(file, 'r')
+			@body = File.read(file)
 		end
 
 		def fetch_body_quoted
