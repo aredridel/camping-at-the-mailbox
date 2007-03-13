@@ -1133,8 +1133,8 @@ module CampingAtMailbox
 										br
 									end
 									text 'From ' 
-									cite(:title => env.from[0].mailbox + '@' + env.from[0].host) do
-										decode_header(env.from[0].name || env.from[0].mailbox)
+									cite(:title => env.from[0].mailbox || 'invalid address' + '@' + env.from[0].host || 'invalid host') do
+										decode_header(env.from[0].name || env.from[0].mailbox || 'invalid mailbox')
 									end if env.from
 									span(:class => 'date') {
 										if env.date
