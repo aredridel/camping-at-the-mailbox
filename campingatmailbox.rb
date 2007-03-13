@@ -30,6 +30,8 @@ class Net::IMAP
 end
 
 class ReconnectingIMAP
+	class ReconnectNeeded < Exception; end
+
 	def initialize(*args)
 		@initargs = args
 		@connection = Net::IMAP.new(*args)
@@ -55,8 +57,11 @@ class ReconnectingIMAP
 	def method_missing(*args, &block)
 		tries = 0
 		begin
+			if !@connection
+				raise ReconnectNeeded
+			end
 			@connection.send(*args, &block)
-		rescue IOError
+		rescue IOError, ReconnectNeeded
 			if tries == 0
 				tries += 1
 				initialize(*@initargs)
@@ -104,6 +109,7 @@ module CampingAtMailbox
 
 	module Helpers
 		def imap
+			residentsession[:imap] ||= @state['imapconnection'].dup
 			residentsession[:imap]
 		end
 
@@ -448,6 +454,10 @@ module CampingAtMailbox
 						imap.subscribe("Sent")
 					rescue Net::IMAP::NoResponseError => e
 					end
+
+					t = imap.dup
+					t.send(:instance_variable_set, :@connection, nil)
+					@state['imapconnection'] = t
 					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
