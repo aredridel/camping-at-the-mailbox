@@ -533,8 +533,10 @@ module CampingAtMailbox
 					end
 				end
 				@input = imap.uid_store(@messages.map { |e| e.to_i }, '+FLAGS', [:Deleted])
-				@messages.each do |e|
-					residentsession[:uidlist].delete(e.to_i)
+				if residentsession[:uidlist]
+					@messages.each do |e|
+						residentsession[:uidlist].delete(e.to_i)
+					end
 				end
 				
 				redirect R(Mailbox, mailbox)
