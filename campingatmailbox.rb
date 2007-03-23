@@ -54,6 +54,12 @@ class ReconnectingIMAP
 		@connection.send(:authenticate, *args)
 	end
 
+	def reconnect
+		initialize(*@initargs)
+		send(@loginmethod, *@loginargs)
+		select(*@selectargs) if @selectargs
+	end
+
 	def method_missing(*args, &block)
 		tries = 0
 		begin
@@ -64,9 +70,7 @@ class ReconnectingIMAP
 		rescue IOError, ReconnectNeeded
 			if tries == 0
 				tries += 1
-				initialize(*@initargs)
-				send(@loginmethod, *@loginargs)
-				select(*@selectargs) if @selectargs
+				reconnect
 				retry
 			else
 				raise
