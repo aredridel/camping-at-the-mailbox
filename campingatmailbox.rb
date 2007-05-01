@@ -1157,7 +1157,7 @@ module CampingAtMailbox
 									end if env.from
 									span(:class => 'date') {
 										if env.date
-											Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M')
+											Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M') rescue 'Invalid date/time'
 										else
 											'(no date)'
 										end
