@@ -741,6 +741,18 @@ module CampingAtMailbox
 			end
 		end
 
+		class Purge < R '/purge/(.*)'
+			def get(mailbox)
+				@mailbox= mailbox
+				render :purgeconfirm
+			end
+			def post(mailbox)
+				select_mailbox(mailbox)
+				imap.expunge
+				redirect R(Mailbox, mailbox)
+			end
+		end
+
 		class SearchResults < R '/search/result/(.*)'
 			def get(search_id)
 				@class = SearchResults
@@ -1106,6 +1118,7 @@ module CampingAtMailbox
 					a('Compose a Message', :href => R(Compose, nil))
 					a('Mailbox List', :href => R(Mailboxes))
 					a('Address Book', :href => R(Addresses))
+					a('Purge Deleted Messages', :href => R(Purge, @mailbox))
 					a('Log Out', :href => R(Logout))
 					label.search { text "Search "; input.search :name=>'search', :type=>'text' }
 				end
@@ -1343,6 +1356,13 @@ module CampingAtMailbox
 				@header.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
 			end
 		end
+
+		def purgeconfirm
+			form :action => R(Purge, @mailbox), :method => 'post' do
+				p 'Are you sure you want to delete this message?'
+				input :type => 'submit', :value => 'Confirm'
+			end
+		end	
 
 		def sent
 			p.controls do
