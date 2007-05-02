@@ -536,6 +536,7 @@ module CampingAtMailbox
 						@messages = [input.message]
 					end
 				end
+				select_mailbox(mailbox)
 				@input = imap.uid_store(@messages.map { |e| e.to_i }, '+FLAGS', [:Deleted])
 				if residentsession[:uidlist]
 					@messages.each do |e|
