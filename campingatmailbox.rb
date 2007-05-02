@@ -926,6 +926,7 @@ module CampingAtMailbox
 				div do
 				 	h1 'Internal Mail System Error'
 					p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
+					p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 				end
 
      	end
