@@ -529,18 +529,20 @@ module CampingAtMailbox
 			end
 
 			def post(mailbox)
-				if input.action =~ /Delete/
-					if Array === input.message
-						@messages = input.message
-					else
-						@messages = [input.message]
+				if input.message
+					if input.action =~ /Delete/
+						if Array === input.message
+							@messages = input.message
+						else
+							@messages = [input.message]
+						end
 					end
-				end
-				select_mailbox(mailbox)
-				@input = imap.uid_store(@messages.map { |e| e.to_i }, '+FLAGS', [:Deleted])
-				if residentsession[:uidlist]
-					@messages.each do |e|
-						residentsession[:uidlist].delete(e.to_i)
+					select_mailbox(mailbox)
+					@input = imap.uid_store(@messages.map { |e| e.to_i }, '+FLAGS', [:Deleted])
+					if residentsession[:uidlist]
+						@messages.each do |e|
+							residentsession[:uidlist].delete(e.to_i)
+						end
 					end
 				end
 				
