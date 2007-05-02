@@ -904,6 +904,31 @@ module CampingAtMailbox
 			end
 		end
 
+		class Test < R '/test'
+			def get
+				raise 'hell'
+			end
+		end
+
+		class ServerError
+			def get(k,m,e)
+				@status = 500
+				IO.popen("mail #{$config['erroremail']} -s CATM-Error", 'w') do |err|
+					err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
+					e.backtrace.each do |bt|
+						err.puts bt
+					end
+				end
+
+				div do
+				 	h1 'Internal Mail System Error'
+					p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
+				end
+
+     	end
+		end
+
+
 		class Addresses < R '/addresses'
 			def get
 				fetch_addresses
