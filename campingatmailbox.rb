@@ -610,6 +610,10 @@ module CampingAtMailbox
 					render :messagepart
 				when Net::IMAP::BodyTypeMessage
 					render :messagepart
+				when nil
+					@status = 404
+					@pagetitle = 'Not Found'
+					render :messagepartnotfound
 				else
 					@headers['Content-Type'] = @part.media_type.downcase << '/' << @part.subtype.downcase
 					@body = decode(@part)
@@ -1418,6 +1422,10 @@ module CampingAtMailbox
 		def messagepart
 			_messagepartheader @part if Net::IMAP::BodyTypeMessage === @part
 			_message @part
+		end
+
+		def messagepartnotfound
+			p { "Message part not found" }
 		end
 
 		def attachment
