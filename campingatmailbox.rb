@@ -296,7 +296,7 @@ module CampingAtMailbox
 				@error = 'You have no mailboxes subscribed, showing everything'
 				@mailboxes = imap.list('', '*')
 			end
-			@mailboxes = @mailboxes.sort_by { |mb| [if mb.name == 'INBOX' then 1 else 2 end, mb.name.downcase] }
+			@mailboxes = @mailboxes.sort_by { |mb| [if mb.name.split(mb.delim).first == 'INBOX' then 1 else 2 end, *mb.name.downcase.split(mb.delim)] }
 		end
 
 		def fetch_structure
@@ -1137,6 +1137,8 @@ module CampingAtMailbox
 				a('Log Out', :href => R(Logout))
 			end
 			h1 "Mailboxes"
+			_mblist(@mailboxes)
+			return
 			ul do
 				@mailboxes.each do |mb|
 					li do
@@ -1145,6 +1147,23 @@ module CampingAtMailbox
 				end
 			end
 		end
+
+		def _mblist(l, depth = 0)
+			ul do
+				l.select { |mb| mb.name.split(mb.delim)[depth] and !mb.name.split(mb.delim)[depth+1] }.each do |mb|
+					li do
+						a(mb.name.split(mb.delim)[depth], :href => R(Mailbox, mb.name))
+						subs = l.select do |m| 
+							m.name.split(m.delim)[0..depth] == mb.name.split(mb.delim)[0..depth] and m.name.split(m.delim).size > mb.name.split(m.delim).size 
+						end
+						if !subs.empty?
+							_mblist(subs, depth + 1)
+						end
+					end
+				end
+			end
+		end
+					
 
 		def searchresults
 			@results.each do |uid|
