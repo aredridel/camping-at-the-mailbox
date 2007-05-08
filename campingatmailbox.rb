@@ -1070,7 +1070,7 @@ module CampingAtMailbox
 				body do
 					#h1.header { a 'Mail?', :href => R(Index) }
 					div(:class => 'error') do
-						@error
+						@error.gsub('&', '&amp;').gsub('>', '&gt;').gsub('<', '&lt;')
 					end if @error
 					div.content do
 						self << yield
@@ -1119,6 +1119,9 @@ module CampingAtMailbox
 				input :type => 'hidden', :name => 'deletemessage', :value => @uid
 				input :type => 'submit', :value => 'Confirm'
 			end
+		end
+
+		def error
 		end
 
 		def movemessage
