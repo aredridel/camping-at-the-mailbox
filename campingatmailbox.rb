@@ -902,6 +902,9 @@ module CampingAtMailbox
 							recips = [@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
 								Net::IMAP::Address.parse(a.strip).email 
 							end
+							if recips.empty?
+								raise 'No recipients specified'
+							end
 							@results = smtp.open_message_stream(@state['from'].email, recips) do |out|
 								output_message_to(out)
 								msg = ''
@@ -914,7 +917,7 @@ module CampingAtMailbox
 							finish_message(@messageid)
 							render :sent
 						end
-					rescue Net::SMTPSyntaxError => e
+					rescue Net::SMTPSyntaxError, RuntimeError => e
 						@error = e.message
 						render :error
 					end
