@@ -420,11 +420,21 @@ module CampingAtMailbox
 					@state['domain'] = env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
 					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
 				end
-				imap_connection = ReconnectingIMAP.new(
-					($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain']), 
-					($config['imapport'] || 143).to_i,
-					($config['imapssl'] || false)
-				)
+				begin
+					imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
+					imap_connection = ReconnectingIMAP.new(
+						imaphost,
+						($config['imapport'] || 143).to_i,
+						($config['imapssl'] || false)
+					)
+				rescue SocketError => e
+					if e.message =~ /getaddrinfo/
+						@error = "Mail server not found at #{imaphost}"
+						return render(:error)
+					else
+						raise
+					end
+				end
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
