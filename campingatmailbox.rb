@@ -933,7 +933,7 @@ module CampingAtMailbox
 			def get(k,m,e)
 				@status = 500
 				if $config['erroremail']
-					IO.popen("mail #{$config['erroremail']} -s CATM-Error", 'w') do |err|
+					IO.popen("mail -s 'Camping at the mailbox error' #{$config['erroremail']}", 'w') do |err|
 						err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
 						e.backtrace.each do |bt|
 							err.puts bt
