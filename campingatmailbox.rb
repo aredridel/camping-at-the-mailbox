@@ -927,16 +927,24 @@ module CampingAtMailbox
 		class ServerError
 			def get(k,m,e)
 				@status = 500
-				IO.popen("mail #{$config['erroremail']} -s CATM-Error", 'w') do |err|
-					err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
-					e.backtrace.each do |bt|
-						err.puts bt
+				if $config['erroremail']
+					IO.popen("mail #{$config['erroremail']} -s CATM-Error", 'w') do |err|
+						err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
+						e.backtrace.each do |bt|
+							err.puts bt
+						end
 					end
 				end
 
 				div do
 				 	h1 'Internal Mail System Error'
-					p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
+					if $config['erroremail']
+						p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
+					else
+						h2 "#{k}.#{m}"
+						h3 "#{e.class} #{e.message}:"
+						ul { e.backtrace.each { |bt| li bt } }
+					end
 					p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 				end
 
