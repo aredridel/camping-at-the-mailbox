@@ -897,23 +897,28 @@ module CampingAtMailbox
 					if $config['smtpauth']
 						connect_params += [@state['username'], @state['password'], :plain]
 					end
-					Net::SMTP.start(*connect_params) do |smtp|
-						recips = [@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
-							Net::IMAP::Address.parse(a.strip).email 
+					begin
+						Net::SMTP.start(*connect_params) do |smtp|
+							recips = [@cmessage.to, @cmessage.cc, @cmessage.bcc].join(',').split(',').select {|e| !e.strip.empty? }.map do |a| 
+								Net::IMAP::Address.parse(a.strip).email 
+							end
+							@results = smtp.open_message_stream(@state['from'].email, recips) do |out|
+								output_message_to(out)
+								msg = ''
+								# FIXME, big attachments should totally cause huge core growth
+								o = StringIO.new(msg)
+								output_message_to(o)
+								imap.append("Sent", msg, [:Seen], Time.now)
+							end
+							@cmessage = nil
+							finish_message(@messageid)
+							render :sent
 						end
-						@results = smtp.open_message_stream(@state['from'].email, recips) do |out|
-							output_message_to(out)
-							msg = ''
-							# FIXME, big attachments should totally cause huge core growth
-							o = StringIO.new(msg)
-							output_message_to(o)
-							imap.append("Sent", msg, [:Seen], Time.now)
-						end
-						@cmessage = nil
-						finish_message(@messageid)
+					rescue Net::SMTPSyntaxError => e
+						@error = e.message
+						render :error
 					end
 				
-					render :sent
 				end
 			end
 		end
