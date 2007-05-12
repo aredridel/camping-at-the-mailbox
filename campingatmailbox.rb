@@ -679,7 +679,7 @@ module CampingAtMailbox
 				@uid = uid.to_i
 				if input.deletemessage == uid
 					imap.uid_store(@uid, '+FLAGS', [:Deleted])
-					residentsession[:uidlist].delete(@uid)
+					residentsession[:uidlist].delete(@uid) if residentsession[:uidlist]
 					redirect Mailbox, mailbox
 				else
 					render :deleteq
