@@ -317,7 +317,12 @@ module CampingAtMailbox
 					index_structure part
 				end
 			when Net::IMAP::BodyTypeMessage
-				index_structure structure.body
+				case structure.subtype
+				when 'DISPOSITION-NOTIFICATION':
+				else
+					index_structure structure.body
+				end
+
 			end
 		end
 
@@ -1384,7 +1389,7 @@ module CampingAtMailbox
 				else
 					structure.parts.each_with_index do |part,i|
 						div.message do
-							if !part.disposition or part.disposition.dsp_type == 'INLINE'
+							if (!part.disposition or part.disposition.dsp_type == 'INLINE') and  !part.subtype = 'DISPOSITION-NOTIFICATION'
 								if depth <= maxdepth
 									_message(part, depth + 1, maxdepth)
 								else
