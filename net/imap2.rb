@@ -159,10 +159,15 @@ module Net
         match(T_SPACE)
         env = envelope
         match(T_SPACE)
-        b = body
-        match(T_SPACE)
-        lines = number
-        md5, disposition, language, extension = body_ext_1part
+				if msubtype =~ /delivery-status/i
+					md5, disposition, language = nil, nil, nil
+					extension = body_extensions
+				else
+					b = body
+					match(T_SPACE)
+					lines = number
+					md5, disposition, language, extension = body_ext_1part
+				end
         return BodyTypeMessage.new(mtype, msubtype, part_id,
                                    param, content_id,
                                    desc, enc, size,
