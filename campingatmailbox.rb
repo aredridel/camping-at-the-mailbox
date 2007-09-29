@@ -1371,9 +1371,13 @@ module CampingAtMailbox
 		def _message(structure, depth = 0, maxdepth = 1)
 			case structure
 			when Net::IMAP::BodyTypeMessage
-				div.message do
-					_messageheader(structure.envelope)
-					_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth
+				if structure.subtype == 'DELIVERY-STATUS'
+					# FIXME
+				else
+					div.message do
+						_messageheader(structure.envelope)
+						_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth
+					end
 				end
 			when Net::IMAP::BodyTypeMultipart
 				if structure.subtype == 'ALTERNATIVE'
