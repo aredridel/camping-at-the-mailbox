@@ -319,6 +319,7 @@ module CampingAtMailbox
 			when Net::IMAP::BodyTypeMessage
 				case structure.subtype
 				when 'DISPOSITION-NOTIFICATION':
+				when 'DELIVERY-STATUS':
 				else
 					index_structure structure.body
 				end
