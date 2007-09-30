@@ -955,6 +955,8 @@ module CampingAtMailbox
 				@status = 500
 				if $config['erroremail']
 					IO.popen("mail -s 'Camping at the mailbox error' #{$config['erroremail']}", 'w') do |err|
+						err.puts "State: #{@state.inspect}"
+						err.puts "Resident: #{residentsession.inspect}"
 						err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
 						e.backtrace.each do |bt|
 							err.puts bt
