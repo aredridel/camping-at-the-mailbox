@@ -245,9 +245,8 @@ module CampingAtMailbox
 		end
 
 		def select_mailbox(mb)
-			imap.noop
+			imap.select(mb)
 			if residentsession[:selectedmbox] != mb
-				imap.select(mb)
 				residentsession[:selectedmbox] = mb
 				residentsession.delete :uidlist
 			end
