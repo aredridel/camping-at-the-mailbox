@@ -546,9 +546,7 @@ module CampingAtMailbox
 					# UGLY
 					@messageset = residentsession[:uidlist][@start..@fin]
 					@messages = imap.uid_fetch(@messageset, ['FLAGS', 'ENVELOPE', 'UID'])
-					if residentsession[:usesort]
-						@messages = @messages.sort_by { |e| @messageset.index(e.attr['UID']) }
-					end
+					@messages = @messages.sort_by { |e| @messageset.index(e.attr['UID']) }
 				end
 				render :mailbox
 			end
