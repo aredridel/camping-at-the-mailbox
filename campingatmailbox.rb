@@ -967,7 +967,7 @@ module CampingAtMailbox
 
 				div do
 				 	h1 'Internal Mail System Error'
-					if $config['erroremail']
+					if $config['erroremail'] and !@state[:debug]
 						p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
 					else
 						h2 "#{k}.#{m}"
@@ -978,6 +978,20 @@ module CampingAtMailbox
 				end
 
      	end
+		end
+
+		class Debug < R '/debug'
+			def get
+				render :debug
+			end
+			def post
+				if @input[:debug] == 'Enable'
+					@state[:debug] = true
+				else
+					@state[:debug] = false
+				end
+				redirect R(Index)
+			end
 		end
 
 
@@ -1082,6 +1096,14 @@ module CampingAtMailbox
 				end
 			end
 		end
+
+	def debug
+		form :action => R(Debug), :method => 'post' do
+			h1 'Enable debugging?'
+			input :type => 'submit', :value => 'Enable', :name => 'debug'
+			input :type => 'submit', :value => 'Disable', :name => 'debug'
+		end
+	end
 
 		def layout
 			html do
