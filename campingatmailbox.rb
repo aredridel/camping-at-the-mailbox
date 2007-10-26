@@ -172,7 +172,10 @@ module CampingAtMailbox
 				end
 				begin
 					if charset.downcase != 'utf-8'
-						value = Iconv.new('utf-8', charset).iconv(value)
+						begin
+							value = Iconv.new('utf-8', charset).iconv(value)
+						rescue
+						end
 					end
 				rescue Iconv::InvalidEncoding
 					if charset.downcase != 'iso8859-1'
