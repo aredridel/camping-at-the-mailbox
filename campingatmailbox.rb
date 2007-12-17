@@ -111,6 +111,9 @@ module CampingAtMailbox
 	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
 
+	class UserError < Exception
+	end
+
 	module Helpers
 		def imap
 			if @state['imapconnection'] and !residentsession[:imap]
@@ -302,7 +305,12 @@ module CampingAtMailbox
 		end
 
 		def fetch_structure
-			@message = imap.uid_fetch(@uid, ['ENVELOPE', 'BODYSTRUCTURE'])[0]
+			@message = imap.uid_fetch(@uid, ['ENVELOPE', 'BODYSTRUCTURE'])
+			if !@message
+				raise UserError, 'Message already deleted'
+			else
+				@message = @message.first
+			end
 			@structure = @message.attr['BODYSTRUCTURE']
 			@parts = Hash.new do |h,k|
 				h[k] = imap.uid_fetch(@uid, "BODY[#{k}]")[0].attr["BODY[#{k}]"]
@@ -954,27 +962,35 @@ module CampingAtMailbox
 		class ServerError
 			def get(k,m,e)
 				@status = 500
-				if $config['erroremail']
-					IO.popen("mail -s 'Camping at the mailbox error' #{$config['erroremail']}", 'w') do |err|
-						err.puts "State: #{@state.inspect}"
-						err.puts "Resident: #{residentsession.inspect}"
-						err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
-						e.backtrace.each do |bt|
-							err.puts bt
+				case e
+				when UserError
+					div do
+						h1 'Error'
+						p e.message
+					end
+				else
+					if $config['erroremail']
+						IO.popen("mail -s 'Camping at the mailbox error' #{$config['erroremail']}", 'w') do |err|
+							err.puts "State: #{@state.inspect}"
+							err.puts "Resident: #{residentsession.inspect}"
+							err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
+							e.backtrace.each do |bt|
+								err.puts bt
+							end
 						end
 					end
-				end
 
-				div do
-				 	h1 'Internal Mail System Error'
-					if $config['erroremail'] and !@state[:debug]
-						p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
-					else
-						h2 "#{k}.#{m}"
-						h3 "#{e.class} #{e.message}:"
-						ul { e.backtrace.each { |bt| li bt } }
+					div do
+						h1 'Internal Mail System Error'
+						if $config['erroremail'] and !@state[:debug]
+							p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
+						else
+							h2 "#{k}.#{m}"
+							h3 "#{e.class} #{e.message}:"
+							ul { e.backtrace.each { |bt| li bt } }
+						end
+						p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 					end
-					p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 				end
 
      	end
