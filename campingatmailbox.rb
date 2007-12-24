@@ -770,7 +770,7 @@ module CampingAtMailbox
 			def post(mailbox)
 				@mailbox = mailbox
 				select_mailbox(@mailbox)
-				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['OR', 'BODY', e, 'SUBJECT', e, 'FROM', e] }.flatten + ['UNDELETED'])
+				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['OR', 'OR', 'BODY', e, 'SUBJECT', e, 'FROM', e] }.inject { |a, e| ['OR', a,  e] }.flatten + ['UNDELETED'])
 				if !uids.empty?
 					@search_id = new_messageid
 					(residentsession[:searchresults] ||= Hash.new)[@search_id] = uids
