@@ -1210,8 +1210,11 @@ module CampingAtMailbox
 		def mailboxes
 			p.controls do
 				a('Compose a Message', :href => R(Compose, nil))
+				self << ' '
 				a('Create Mailbox', :href => R(CreateMailbox)) 
+				self << ' '
 				a('Address Book', :href => R(Addresses))
+				self << ' '
 				a('Log Out', :href => R(Logout))
 			end
 			h1 "Mailboxes"
@@ -1253,10 +1256,15 @@ module CampingAtMailbox
 			form :action => R(Search, @mailbox), :method => 'post' do 
 				p.controls do
 					a('Compose a Message', :href => R(Compose, nil))
+					self << ' '
 					a('Mailbox List', :href => R(Mailboxes))
+					self << ' '
 					a('Address Book', :href => R(Addresses))
+					self << ' '
 					a('Purge Deleted Messages', :href => R(Purge, @mailbox))
+					self << ' '
 					a('Log Out', :href => R(Logout))
+					self << ' '
 					label.search { text "Search "; input.search :name=>'search', :type=>'text' }
 				end
 			end
@@ -1385,13 +1393,19 @@ module CampingAtMailbox
 		def _messagecontrols(multiple_recipients = false)
 			p.controls do
 				a 'reply', :href => R(Reply, @mailbox, uid, nil)
+				self << ' '
 				if multiple_recipients
 					a '(to all)', :href => R(Reply, @mailbox, uid, 'all')
+					self << ' '
 				end
 				a 'forward', :href => R(Forward, @mailbox, uid)
+				self << ' '
 				a 'delete', :href => R(DeleteMessage, @mailbox, uid)
+				self << ' '
 				a 'move', :href => R(MoveMessage, @mailbox, uid)
+				self << ' '
 				a 'headers', :href => R(Header, @mailbox, uid)
+				self << ' '
 			end
 		end
 
