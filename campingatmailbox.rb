@@ -1297,12 +1297,12 @@ module CampingAtMailbox
 										br
 									end
 									text 'From ' 
-									cite(:title => env.from[0].mailbox || 'invalid address' + '@' + env.from[0].host || 'invalid host') do
+									cite(:title => (env.from[0].mailbox || 'invalid address') + '@' + (env.from[0].host || 'invalid host')) do
 										decode_header(env.from[0].name || env.from[0].mailbox || 'invalid mailbox')
 									end if env.from
 									span(:class => 'date') {
 										if env.date
-											Time.parse(env.date).strftime('on %Y/%m/%d at %H:%M') rescue 'Invalid date/time'
+											Time.parse(env.date).strftime(' on %Y/%m/%d at %H:%M') rescue 'Invalid date/time'
 										else
 											'(no date)'
 										end
@@ -1340,7 +1340,7 @@ module CampingAtMailbox
 					envelope.from.each do |f|
 						cite(:title => f.mailbox + '@' + f.host) { decode_header(f.name || f.mailbox) }
 					end
-					text (Time.parse(envelope.date).strftime('on %Y/%m/%d at %H:%M') || 'none') if envelope.date
+					text (Time.parse(envelope.date).strftime(' on %Y/%m/%d at %H:%M') || 'none') if envelope.date
 				end if envelope.from
 				p do
 					begin
