@@ -10,6 +10,7 @@ require 'iconv'
 require 'hpricot'
 
 $residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
+$connections = Hash.new if !$connections
 
 class Net::IMAP
 	def idle
@@ -31,6 +32,10 @@ end
 
 class ReconnectingIMAP
 	class ReconnectNeeded < Exception; end
+
+	def authenticated?
+		@authenticated
+	end
 
 	def initialize(*args)
 		@initargs = args
@@ -413,8 +418,17 @@ module CampingAtMailbox
 	module Controllers
 		class Index < R '/'
 			def get
-				if imap and !imap.disconnected?
-					redirect Mailboxes
+				if imap
+					if imap.disconnected?
+						begin
+							imap.reconnect
+							redirect Mailboxes
+						rescue
+							redirect Login
+						end
+					else
+						redirect Mailboxes
+					end
 				else
 					redirect Login
 				end
@@ -438,7 +452,7 @@ module CampingAtMailbox
 				end
 				begin
 					imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
-					imap_connection = ReconnectingIMAP.new(
+					imap_connection = $connections[[imaphost, input.username, input.password]] || ReconnectingIMAP.new(
 						imaphost,
 						($config['imapport'] || 143).to_i,
 						($config['imapssl'] || false)
@@ -451,6 +465,10 @@ module CampingAtMailbox
 						raise
 					end
 				end
+				if imap_connection.authenticated?
+					redirect Mailboxes
+					return
+				end
 				caps = imap_connection.capability
 				begin
 					if caps.include? 'AUTH=LOGIN'
@@ -458,8 +476,23 @@ module CampingAtMailbox
 					else
 						imap_connection.login(input.username, input.password)
 					end
+					imap_connection.add_response_handler { |r| imap_response_handler(r) }
+					begin
+						imap_connection.subscribe('INBOX')
+						imap_connection.create("Drafts")
+						imap_connection.subscribe("Drafts")
+						imap_connection.create("Sent")
+						imap_connection.subscribe("Sent")
+					rescue Net::IMAP::NoResponseError => e
+					end
 					residentsession.clear
 					residentsession[:imap] = imap_connection
+					residentsession[:pinger] = Thread.new do 
+						while residentsession[:imap] and !imap.disconnected?
+							imap.noop
+							sleep 60
+						end
+					end
 					if $config['ldaphost']
 						residentsession[:ldap] = Net::LDAP.new(
 							:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
@@ -476,23 +509,10 @@ module CampingAtMailbox
 							end
 						end
 					end
-					residentsession[:pinger] = Thread.new do 
-						while residentsession[:imap] and !imap.disconnected?
-							imap.noop
-							sleep 60
-						end
-					end
+					$connections[[imaphost, input.username, input.password]] = imap_connection
+					residentsession[:imap] = imap_connection
 					@state['username'] = input.username
 					@state['password'] = input.password
-					imap.add_response_handler { |r| imap_response_handler(r) }
-					begin
-						imap.subscribe('INBOX')
-						imap.create("Drafts")
-						imap.subscribe("Drafts")
-						imap.create("Sent")
-						imap.subscribe("Sent")
-					rescue Net::IMAP::NoResponseError => e
-					end
 
 					t = imap.dup
 					t.send(:instance_variable_set, :@connection, nil)
@@ -501,7 +521,7 @@ module CampingAtMailbox
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
 					@error = 'wrong user name or password'
-				end
+				end 
 				render :login
 			end
 
