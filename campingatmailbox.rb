@@ -1316,13 +1316,12 @@ module CampingAtMailbox
 									input.controls :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
 									if @mailbox == 'Drafts' and env.to
 										text 'To ' 
-										text env.to[0..8].map { |to|
-											capture do
-												cite(:title => to.mailbox + '@' + to.host) do
-													decode_header(to.name || to.mailbox)
-												end 
-											end
-										}.join(', ')
+										text env.to[0..8].each do |to|
+											cite(:title => to.mailbox + '@' + to.host) do
+												decode_header(to.name || to.mailbox)
+											end 
+											self << ' '
+										end
 										if env.to.length > 9
 											text ", more..."
 										end
