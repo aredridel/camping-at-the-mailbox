@@ -1117,6 +1117,7 @@ module CampingAtMailbox
 						td address
 						td do
 							a('delete', :href => R(DeleteAddress, address))
+							self << ' '
 							a('compose', :href => R(Compose, nil, {:to => "#{name} <#{address}>"}))
 						end 
 					end
