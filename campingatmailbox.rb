@@ -45,21 +45,31 @@ class ReconnectingIMAP
 	def login(*args)
 		@loginargs = args
 		@loginmethod = :authenticate
-		@connection.send(:login, *args)
+		r = method_missing(:login, *args)
+		@authenticated = true
+		r
 	end
 
 	def select(*args)
-		@selectargs = *args
-		@connection.send(:select, *args)
+		@selectargs = args
+		method_missing(:select, *args)
 	end
 
 	def authenticate(*args)
 		@loginargs = args
 		@loginmethod = :authenticate
-		@connection.send(:authenticate, *args)
+		r = method_missing(:authenticate, *args)
+		@authenticated = true
+		r
 	end
 
 	def reconnect
+		$stderr.puts "Reconnecting"
+		begin
+			@connection.disconnect
+		rescue
+		end
+		@connection.instance_variable_set(:@socket, nil)
 		initialize(*@initargs)
 		send(@loginmethod, *@loginargs)
 		select(*@selectargs) if @selectargs
@@ -73,11 +83,12 @@ class ReconnectingIMAP
 			end
 			@connection.send(*args, &block)
 		rescue IOError, ReconnectNeeded
-			if tries == 0
+			if tries <= 2
 				tries += 1
 				reconnect
 				retry
 			else
+				$!.message << " (tried #{tries}) more times)"
 				raise
 			end
 		end
