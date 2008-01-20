@@ -227,8 +227,8 @@ module CampingAtMailbox
 					[
 						if part.media_type == 'TEXT': 0 else 1 end,
 						case part.media_type
-						when 'PLAIN': 0 
-						when 'HTML': 1
+						when 'PLAIN': 1 
+						when 'HTML': 0
 						else 2
 						end
 					]
@@ -778,8 +778,8 @@ module CampingAtMailbox
 						[
 							if part.media_type == 'TEXT': 0 else 1 end,
 							case part.media_type
-							when 'PLAIN': 0 
-							when 'HTML': 1
+							when 'PLAIN': 1 
+							when 'HTML': 0
 							else 2
 							end
 						]
@@ -1470,8 +1470,8 @@ module CampingAtMailbox
 						[
 							if part.media_type == 'TEXT': 0 else 1 end,
 							case part.media_type
-							when 'PLAIN': 0 
-							when 'HTML': 1
+							when 'PLAIN': 1
+							when 'HTML': 0
 							else 2
 							end
 						]
