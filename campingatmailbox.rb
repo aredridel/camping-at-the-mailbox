@@ -633,9 +633,9 @@ module CampingAtMailbox
 					imap.disconnect
 				rescue Exception => e
 				end
-				residentsession[:imap] = nil
-				@state['username'] = nil
-				@state['password'] = nil
+				residentsession
+				@state.clear
+				residentsession.clear
 				redirect R(Login)
 			end
 		end
@@ -992,6 +992,11 @@ module CampingAtMailbox
 
 		class ServerError
 			def get(k,m,e)
+				if !imap
+					@status = 301
+					@headers['Location'] = R(Login)
+					return
+				end
 				@status = 500
 				case e
 				when UserError
