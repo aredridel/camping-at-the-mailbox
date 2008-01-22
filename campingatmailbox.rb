@@ -30,6 +30,12 @@ class Net::IMAP
 	end
 end
 
+class String
+	def htmlsafe
+		gsub(/&/, '&amp;').gsub(/>/, '&gt;').gsub(/</, '&lt;')
+	end
+end
+
 class ReconnectingIMAP
 	class ReconnectNeeded < Exception; end
 
