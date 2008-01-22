@@ -469,11 +469,13 @@ module CampingAtMailbox
 				end
 				begin
 					imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
-					imap_connection = $connections[[imaphost, input.username, input.password]] || ReconnectingIMAP.new(
-						imaphost,
-						($config['imapport'] || 143).to_i,
-						($config['imapssl'] || false)
-					)
+					if !imap_connection = $connections[[imaphost, input.username, input.password]] 
+						imap_connection = $connections[[imaphost, input.username, input.password]] = ReconnectingIMAP.new(
+							imaphost,
+							($config['imapport'] || 143).to_i,
+							($config['imapssl'] || false)
+						)
+					end
 				rescue SocketError => e
 					if e.message =~ /getaddrinfo/
 						@error = "Mail server not found at #{imaphost}"
@@ -482,67 +484,62 @@ module CampingAtMailbox
 						raise
 					end
 				end
-				if imap_connection.authenticated?
-					redirect Mailboxes
-					residentsession[:imap] = imap_connection
-					t = imap_connection.dup
-					t.send(:instance_variable_set, :@connection, nil)
-					@state[:imap] = t
-					return
-				end
-				caps = imap_connection.capability
-				begin
-					if caps.include? 'AUTH=LOGIN'
-						imap_connection.authenticate('LOGIN', input.username, input.password)
-					else
-						imap_connection.login(input.username, input.password)
-					end
-					imap_connection.add_response_handler { |r| imap_response_handler(r) }
-					begin
-						imap_connection.subscribe('INBOX')
-						imap_connection.create("Drafts")
-						imap_connection.subscribe("Drafts")
-						imap_connection.create("Sent")
-						imap_connection.subscribe("Sent")
-					rescue Net::IMAP::NoResponseError => e
-					end
-					residentsession.clear
-					residentsession[:imap] = imap_connection
-					residentsession[:pinger] = Thread.new do 
-						while residentsession[:imap] and !imap.disconnected?
-							imap.noop
-							sleep 60
-						end
-					end
-					if $config['ldaphost']
-						residentsession[:ldap] = Net::LDAP.new(
-							:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
-							:port => $config['ldapport'] || 389
-						)
-						ldap_filter = "(#{$config['ldaprdnattr'] || 'dn'}=#{input.username})"
-						mail_attr = $config['ldapmailattr'] || 'mail'
-						name_attr = $config['ldapnameattr'] || 'cn'
-						ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
-							@state['from'] = if ent[name_attr]
-								Net::IMAP::Address.parse("#{ent[name_attr][0]} <#{ent[mail_attr][0]}>")
-							else
-								Net::IMAP::Address.parse("#{ent[mail_attr][0]}")
-							end
-						end
-					end
-					$connections[[imaphost, input.username, input.password]] = imap_connection
-					residentsession[:imap] = imap_connection
-					@state['username'] = input.username
-					@state['password'] = input.password
 
-					t = imap_connection.dup
-					t.send(:instance_variable_set, :@connection, nil)
-					@state[:imap] = t
-					residentsession[:usesort] = if caps.include? "SORT": true else false end
+				if !imap_connection.authenticated?
+					begin
+						if imap_connection.capability.include? 'AUTH=LOGIN'
+							imap_connection.authenticate('LOGIN', input.username, input.password)
+						else
+							imap_connection.login(input.username, input.password)
+						end
+						imap_connection.add_response_handler { |r| imap_response_handler(r) }
+						begin
+							imap_connection.subscribe('INBOX')
+							imap_connection.create("Drafts")
+							imap_connection.subscribe("Drafts")
+							imap_connection.create("Sent")
+							imap_connection.subscribe("Sent")
+						rescue Net::IMAP::NoResponseError => e
+						end
+					rescue Net::IMAP::NoResponseError => e
+						@error = 'wrong user name or password'
+					end
+				end
+				residentsession[:imap] = imap_connection
+				residentsession[:pinger] = Thread.new do 
+					while residentsession[:imap] and !imap.disconnected?
+						imap.noop
+						sleep 60
+					end
+				end
+				residentsession[:usesort] = if imap.capability.include? "SORT": true else false end
+				if $config['ldaphost']
+					residentsession[:ldap] = Net::LDAP.new(
+						:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
+						:port => $config['ldapport'] || 389
+					)
+					ldap_filter = "(#{$config['ldaprdnattr'] || 'dn'}=#{input.username})"
+					mail_attr = $config['ldapmailattr'] || 'mail'
+					name_attr = $config['ldapnameattr'] || 'cn'
+					ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
+						@state['from'] = if ent[name_attr]
+							Net::IMAP::Address.parse("#{ent[name_attr][0]} <#{ent[mail_attr][0]}>")
+						else
+							Net::IMAP::Address.parse("#{ent[mail_attr][0]}")
+						end
+					end
+				end
+				@state['username'] = input.username
+				@state['password'] = input.password
+
+				t = imap_connection.dup
+				t.send(:instance_variable_set, :@connection, nil)
+				@state[:imap] = t
+				if @error
+					render :login
+				else
 					redirect Mailboxes
-				rescue Net::IMAP::NoResponseError => e
-					@error = 'wrong user name or password'
-				end 
+				end
 				render :login
 			end
 
@@ -1002,11 +999,6 @@ module CampingAtMailbox
 
 		class ServerError
 			def get(k,m,e)
-				if !imap
-					@status = 301
-					@headers['Location'] = R(Login)
-					return
-				end
 				@status = 500
 				case e
 				when UserError
@@ -1185,6 +1177,10 @@ module CampingAtMailbox
 					script :src => R(Scripts, 'site'), :type => 'text/javascript'
 				end
 				body do
+					if @state[:debug]
+						p { @state.inspect.htmlsafe }
+						p { residentsession.inspect.htmlsafe }
+					end
 					#h1.header { a 'Mail?', :href => R(Index) }
 					div(:class => 'error') do
 						@error.gsub('&', '&amp;').gsub('>', '&gt;').gsub('<', '&lt;')
