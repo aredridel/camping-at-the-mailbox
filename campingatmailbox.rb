@@ -132,8 +132,8 @@ module CampingAtMailbox
 
 	module Helpers
 		def imap
-			if @state['imapconnection'] and !residentsession[:imap]
-				residentsession[:imap] = @state['imapconnection'].dup
+			if @state[:imap] and !residentsession[:imap]
+				residentsession[:imap] = @state[:imap].dup
 			end
 			residentsession[:imap]
 		end
@@ -478,6 +478,10 @@ module CampingAtMailbox
 				end
 				if imap_connection.authenticated?
 					redirect Mailboxes
+					residentsession[:imap] = imap_connection
+					t = imap_connection.dup
+					t.send(:instance_variable_set, :@connection, nil)
+					@state[:imap] = t
 					return
 				end
 				caps = imap_connection.capability
@@ -525,9 +529,9 @@ module CampingAtMailbox
 					@state['username'] = input.username
 					@state['password'] = input.password
 
-					t = imap.dup
+					t = imap_connection.dup
 					t.send(:instance_variable_set, :@connection, nil)
-					@state['imapconnection'] = t
+					@state[:imap] = t
 					residentsession[:usesort] = if caps.include? "SORT": true else false end
 					redirect Mailboxes
 				rescue Net::IMAP::NoResponseError => e
@@ -1024,6 +1028,9 @@ module CampingAtMailbox
 							h2 "#{k}.#{m}"
 							h3 "#{e.class} #{e.message}:"
 							ul { e.backtrace.each { |bt| li bt } }
+							p do
+								self << state.inspect.gsub(/&/, '&amp;').gsub(/</, '&lt;').gsub(/>/, '&gt;')
+							end
 						end
 						p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 					end
