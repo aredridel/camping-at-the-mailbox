@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require 'camping'
+require 'camping/session'
 require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
