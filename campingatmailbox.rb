@@ -696,7 +696,10 @@ module CampingAtMailbox
 				@part = part
 				select_mailbox(mailbox)
 				fetch_structure
-				render :attachment
+				@part = @structureindex[part]
+				@headers['Content-Type'] = @part.media_type.downcase << '/' << @part.subtype.downcase
+				@headers['Content-Disposition'] = "attachment; filename=\"#{@part.disposition.param['FILENAME']}\""
+				@body = decode(@part)
 			end
 		end
 
@@ -1458,6 +1461,7 @@ module CampingAtMailbox
 		def _messagepartheader(part)
 				p.messagepartheader do
 					a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) 
+					self << ' '
 					text case part
 						when Net::IMAP::BodyTypeMessage
 							'(included message)'
@@ -1494,11 +1498,15 @@ module CampingAtMailbox
 				else
 					structure.parts.each_with_index do |part,i|
 						div.message do
-							if (!part.disposition or part.disposition.dsp_type == 'INLINE') and  !part.subtype = 'DISPOSITION-NOTIFICATION'
-								if depth <= maxdepth
-									_message(part, depth + 1, maxdepth)
+							if (!part.disposition or part.disposition.dsp_type == 'INLINE')
+							 	if	!part.subtype = 'DISPOSITION-NOTIFICATION'
+									if depth <= maxdepth
+										_message(part, depth + 1, maxdepth)
+									else
+										_messagepartheader(part)
+									end
 								else
-									_messagepartheader(part)
+									_message(part, depth + 1, maxdepth)
 								end
 							else
 								_messagepartheader(part)
@@ -1548,6 +1556,7 @@ module CampingAtMailbox
 			p do
 				# FIXME -- change options depending on whether it's a browser-viewable type or not
 				a('view', :href =>  R(MessagePart, @mailbox, @uid, part.part_id))
+				self << ' '
 				a('download', :href => R(Attachment, @mailbox, @uid, part.part_id))
 			end
 		end
