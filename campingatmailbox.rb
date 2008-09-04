@@ -1730,10 +1730,3 @@ end
 if $config['smtptls']
 	require 'net/smtp_tls'
 end
-
-if __FILE__ == $0
-	params = $config['database'].split(':', 3)
-	CampingAtMailbox::Models::Base.establish_connection :adapter => params[1].downcase, :database => params[2]
-	require 'camping/fastcgi'
-	Camping::FastCGI.start(CampingAtMailbox)
-end
