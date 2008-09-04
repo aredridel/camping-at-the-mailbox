@@ -465,7 +465,7 @@ module CampingAtMailbox
 					@state['domain'] = input.username.split('@').last
 					@state['from'] = Net::IMAP::Address.parse(input.username)
 				else
-					@state['domain'] = env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
+					@state['domain'] = @env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
 					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
 				end
 				begin
@@ -961,7 +961,7 @@ module CampingAtMailbox
 					connect_params = [
 						$config['smtphost'].gsub('%{domain}', @state['domain']), 
 						$config['smtpport'].to_i,
-						env['HTTP_HOST'].split(':').first
+						@env['HTTP_HOST'].split(':').first
 					]
 					if $config['smtpauth']
 						connect_params += [@state['username'], @state['password'], :plain]
