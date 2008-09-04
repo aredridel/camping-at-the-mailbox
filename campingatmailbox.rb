@@ -1590,9 +1590,7 @@ module CampingAtMailbox
 				a('Log Out', :href => R(Logout))
 			end
 			h1 'Your mail was sent'
-			@results.each do |r|
-				p r
-			end
+			p @results.string
 
 			p { a('Continue', :href => R(Mailbox, 'INBOX')) }
 		end
