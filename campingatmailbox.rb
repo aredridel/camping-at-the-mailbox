@@ -490,6 +490,8 @@ module CampingAtMailbox
 					begin
 						if imap_connection.capability.include? 'AUTH=LOGIN'
 							imap_connection.authenticate('LOGIN', input.username, input.password)
+						elsif imap_connection.capability.include? 'AUTH=PLAIN'
+							imap_connection.authenticate('PLAIN', input.username, input.password)
 						else
 							imap_connection.login(input.username, input.password)
 						end
