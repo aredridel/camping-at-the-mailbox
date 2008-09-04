@@ -10,7 +10,7 @@ require 'stringio'
 require 'iconv'
 require 'hpricot'
 
-$residentsession = Hash.new do |h,k| h[k] = {} end if !$residentsession
+$residentsession = [] if !Array === $residentsession
 $connections = Hash.new if !$connections
 
 class Net::IMAP
@@ -286,7 +286,11 @@ module CampingAtMailbox
 		end
 
 		def residentsession
-			$residentsession[@cookies.camping_sid]
+			if @state['residentsessionid']
+				$residentsession[@state['residentsessionid']]
+			else
+				{}
+			end
 		end
 
 		def imap_response_handler(resp)
@@ -468,6 +472,10 @@ module CampingAtMailbox
 					@state['domain'] = @env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
 					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
 				end
+
+				@state['residentsessionid'] = $residentsession.size
+				$residentsession << {}
+
 				begin
 					imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
 					if !imap_connection = $connections[[imaphost, input.username, input.password]] 
