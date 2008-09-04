@@ -1428,8 +1428,14 @@ module CampingAtMailbox
 					end
 				end if envelope.bcc
 				p.subject decode_header(envelope.subject) if envelope.subject
-				_messagecontrols([envelope.to, envelope.cc, envelope.bcc, envelope.reply_to, envelope.from].flatten.select { |e| e and e.email != @state['from'].email }.uniq.size > 1)
-
+				_messagecontrols(
+					[
+						envelope.to, envelope.cc, envelope.bcc, 
+						envelope.reply_to, envelope.from 
+				].flatten.select do |e| 
+					STDERR.puts @state.inspect
+					e and e.email != @state['username']
+				end.uniq.size > 1)
 			end
 		end
 
