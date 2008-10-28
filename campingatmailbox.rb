@@ -38,7 +38,8 @@ class String
 end
 
 class ReconnectingIMAP
-	class ReconnectNeeded < Exception; end
+	class ReconnectNeeded < Exception
+ 	end
 
 	def authenticated?
 		@authenticated
@@ -232,10 +233,10 @@ module CampingAtMailbox
 			part = if @structure.respond_to? :parts and @structure.parts
 				@structure.parts.sort_by { |part| 
 					[
-						if part.media_type == 'TEXT': 0 else 1 end,
+						if part.media_type == 'TEXT' then 0 else 1 end,
 						case part.media_type
-						when 'PLAIN': 1 
-						when 'HTML': 0
+						when 'PLAIN', 0 
+						when 'HTML', 1
 						else 2
 						end
 					]
@@ -355,8 +356,8 @@ module CampingAtMailbox
 				end
 			when Net::IMAP::BodyTypeMessage
 				case structure.subtype
-				when 'DISPOSITION-NOTIFICATION':
-				when 'DELIVERY-STATUS':
+				when 'DISPOSITION-NOTIFICATION'
+				when 'DELIVERY-STATUS'
 				else
 					index_structure structure.body
 				end
@@ -797,10 +798,10 @@ module CampingAtMailbox
 				part = if @structure.respond_to? :parts and @structure.parts
 					@structure.parts.sort_by { |part| 
 						[
-							if part.media_type == 'TEXT': 0 else 1 end,
+							if part.media_type == 'TEXT' then 0 else 1 end,
 							case part.media_type
-							when 'PLAIN': 1 
-							when 'HTML': 0
+							when 'PLAIN', 0 
+							when 'HTML', 1
 							else 2
 							end
 						]
@@ -1389,7 +1390,7 @@ module CampingAtMailbox
 					input :type=>'submit', :name => 'action', :value => 'Delete Selected'
 				end
 			end
-			Pager(@class, @page, @total, 25, if @class == Mailbox: @mailbox else @search_id end)
+			Pager(@class, @page, @total, 25, if @class == Mailbox then @mailbox else @search_id end)
 		end
 
 		def _messageheader(envelope, controls = false)
@@ -1503,10 +1504,10 @@ module CampingAtMailbox
 				if structure.subtype == 'ALTERNATIVE'
 					_message(structure.parts.sort_by do |part|
 						[
-							if part.media_type == 'TEXT': 0 else 1 end,
+							if part.media_type == 'TEXT' then 0 else 1 end,
 							case part.media_type
-							when 'PLAIN': 1
-							when 'HTML': 0
+							when 'PLAIN', 0 
+							when 'HTML', 1
 							else 2
 							end
 						]
