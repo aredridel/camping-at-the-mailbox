@@ -48,11 +48,23 @@ class IMAPPool
 	def get(session)
 		p = @pool[session.username]
 		if !i = p.pop
-			i = ReconnectingIMAP.new
+			i = ReconnectingIMAP.new(session.imaphost)
+			pinger = Thread.new do 
+				while !i.disconnected?
+					i.noop
+					sleep 60
+				end
+			end
 		end
 		yield i
 		p.push i
 
+	end
+
+	@pool = new
+
+	def self.get(session, &block)
+		@pool.get(session, &block)
 	end
 end
 
@@ -497,7 +509,8 @@ module CampingAtMailbox
 				$residentsession << {}
 
 				begin
-					imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
+					@state.imaphost = imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
+					IMAPPool.get(@state) do |i| end
 					if !imap_connection = $connections[[imaphost, input.username, input.password]] 
 						imap_connection = $connections[[imaphost, input.username, input.password]] = ReconnectingIMAP.new(
 							imaphost,
