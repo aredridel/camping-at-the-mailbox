@@ -2,6 +2,7 @@
 
 require 'camping'
 require 'camping/session'
+require 'markaby'
 require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
@@ -9,8 +10,9 @@ require 'dbi'
 require 'stringio'
 require 'iconv'
 require 'hpricot'
+require 'yaml'
 
-$residentsession = [] if !Array === $residentsession
+$residentsession = [] if !$residentsession
 $connections = Hash.new if !$connections
 
 class Net::IMAP
@@ -34,6 +36,23 @@ end
 class String
 	def htmlsafe
 		gsub(/&/, '&amp;').gsub(/>/, '&gt;').gsub(/</, '&lt;')
+	end
+end
+
+class IMAPPool
+	def initialize
+		@pool = Hash.new do |h,k|
+			h[k] = []
+		end
+	end
+	def get(session)
+		p = @pool[session.username]
+		if !i = p.pop
+			i = ReconnectingIMAP.new
+		end
+		yield i
+		p.push i
+
 	end
 end
 
@@ -288,7 +307,7 @@ module CampingAtMailbox
 
 		def residentsession
 			if @state['residentsessionid']
-				$residentsession[@state['residentsessionid']]
+				$residentsession[@state['residentsessionid']] || {}
 			else
 				{}
 			end
@@ -1268,7 +1287,7 @@ module CampingAtMailbox
 			end
 		end
 
-		def mailboxes
+		def _controls
 			p.controls do
 				a('Compose a Message', :href => R(Compose, nil))
 				self << ' '
@@ -1277,7 +1296,12 @@ module CampingAtMailbox
 				a('Address Book', :href => R(Addresses))
 				self << ' '
 				a('Log Out', :href => R(Logout))
+				yield if block_given?
 			end
+		end
+
+		def mailboxes
+			_controls
 			h1 "Mailboxes"
 			_mblist(@mailboxes)
 			return
@@ -1315,16 +1339,7 @@ module CampingAtMailbox
 
 		def mailbox
 			form :action => R(Search, @mailbox), :method => 'post' do 
-				p.controls do
-					a('Compose a Message', :href => R(Compose, nil))
-					self << ' '
-					a('Mailbox List', :href => R(Mailboxes))
-					self << ' '
-					a('Address Book', :href => R(Addresses))
-					self << ' '
-					a('Purge Deleted Messages', :href => R(Purge, @mailbox))
-					self << ' '
-					a('Log Out', :href => R(Logout))
+				_controls do
 					self << ' '
 					label.search { text "Search "; input.search :name=>'search', :type=>'text' }
 				end
@@ -1592,12 +1607,7 @@ module CampingAtMailbox
 		end	
 
 		def sent
-			p.controls do
-				a('Compose a Message', :href => R(Compose, nil))
-				a('Create Mailbox', :href => R(CreateMailbox)) 
-				a('Address Book', :href => R(Addresses))
-				a('Log Out', :href => R(Logout))
-			end
+			_controls
 			h1 'Your mail was sent'
 			p @results.string
 

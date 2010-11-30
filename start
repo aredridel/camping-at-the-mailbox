@@ -1,3 +1,0 @@
-#!/bin/sh
-
-setsid nohup env RUBYLIB=`pwd`/lib:`pwd`/camping-2.0/lib bin/camping -d /var/lib/camping-at-the-mailbox/campingatmailbox.db -s mongrel -h 127.0.0.3 campingatmailbox.rb &

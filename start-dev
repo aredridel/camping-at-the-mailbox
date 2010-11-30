@@ -1,3 +1,0 @@
-#!/bin/sh
-
-RUBYLIB=`pwd`/lib:`pwd`/camping-2.0/lib bin/camping -d campingatmailbox.db -s mongrel -p 9097 campingatmailbox.rb
