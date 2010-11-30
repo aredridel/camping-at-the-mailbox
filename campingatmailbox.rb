@@ -1370,7 +1370,7 @@ module CampingAtMailbox
 						tr(:class => 'header') do
 							td(:class => if flags.include? :Seen then 'seen' else 'unseen' end) do
 								p.envelope do 
-									input.controls :type=>'checkbox', :value=> message.attr['UID'], :name=>'message'
+									input.controls :type=>'checkbox', :value=> message.attr['UID'], :name=>'message[]'
 									if @mailbox == 'Drafts' and env.to
 										text 'To ' 
 										text(env.to[0..8].each do |to|
