@@ -1,3 +1,5 @@
+$LOAD_PATH.unshift '.'
+
 require 'campingatmailbox'
 
 params = $config['database'].split(':', 3)
