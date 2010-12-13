@@ -1698,7 +1698,7 @@ module WordWrapper
 	extend self
 	def wrap(text, margin = 76)
 		output = ''
-		text.each do |paragraph|
+		text.each_line do |paragraph|
 			if (paragraph !~ /^>/)
 				paragraph = wrap_paragraph(paragraph, margin - 1)
 			end
