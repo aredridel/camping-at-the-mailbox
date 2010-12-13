@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+# encoding: utf-8
 
 require 'camping'
 require 'camping/session'
@@ -556,7 +557,7 @@ module CampingAtMailbox
 						sleep 60
 					end
 				end
-				residentsession[:usesort] = if imap.capability.include? "SORT": true else false end
+				residentsession[:usesort] = if imap.capability.include? "SORT" then true else false end
 				if $config['ldaphost']
 					residentsession[:ldap] = Net::LDAP.new(
 						:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
