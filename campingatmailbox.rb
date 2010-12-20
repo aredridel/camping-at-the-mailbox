@@ -1220,10 +1220,10 @@ module CampingAtMailbox
 							:href => R(Style, 'functional')
 					link :rel => 'stylesheet', :type => 'text/css', 
 							:href => R(Style, 'site')
-					script :src => R(Scripts, 'prototype'), :type => 'text/javascript'
-					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript'
-					script :src => R(Scripts, 'behaviour'), :type => 'text/javascript'
-					script :src => R(Scripts, 'site'), :type => 'text/javascript'
+					script :src => R(Scripts, 'prototype'), :type => 'text/javascript' do '' end
+					script :src => R(Scripts, 'scriptaculous'), :type => 'text/javascript' do '' end
+					script :src => R(Scripts, 'behaviour'), :type => 'text/javascript' do '' end
+					script :src => R(Scripts, 'site'), :type => 'text/javascript' do '' end
 				end
 				body do
 					if @state[:debug]
