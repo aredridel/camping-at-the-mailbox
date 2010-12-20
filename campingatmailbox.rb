@@ -603,6 +603,7 @@ module CampingAtMailbox
 			# You open a Mailbox 
 			#
 			def get
+				return redirect R(Login) unless imap
 				get_mailbox_list
 				render :mailboxes
 			end
