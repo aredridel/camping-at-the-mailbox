@@ -9,7 +9,6 @@ require 'net/imap2'
 require 'net/smtp'
 require 'dbi'
 require 'stringio'
-require 'iconv'
 require 'hpricot'
 require 'yaml'
 
@@ -218,6 +217,7 @@ module CampingAtMailbox
 		end
 
 		def decode_header(h)
+			value = h
 			h.gsub(/=\?([^[:space:]]*?)\?([^[:space:]]*?)\?([^[:space:]]*?)\?=/) do |m|
 				charset = $1
 				enc = $2
@@ -227,27 +227,29 @@ module CampingAtMailbox
 				elsif enc.downcase == 'b'
 					value = value.unpack('m').first
 				else
-					return h
+					value = h.force_encoding('ASCII')
 				end
 				begin
-					if charset.downcase != 'utf-8'
-						begin
-							value = Iconv.new('utf-8', charset).iconv(value)
-						rescue
-						end
-					end
-				rescue Iconv::InvalidEncoding
+					value = value.force_encoding(charset.downcase).encode('utf-8')
+				rescue Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
 					if charset.downcase != 'iso8859-1'
 						charset = 'iso8859-1'
 						retry
 					else
-						return h
+						return value = '?' * value.length
 					end
-				rescue Iconv::IllegalSequence
-					return h
 				end
-				value
 			end
+			begin
+				value = value.encode('UTF-8') 
+			rescue Encoding::CompatibilityError, Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
+				begin
+					value = value.force_encoding('ISO-8859-1').encode('UTF-8')
+				rescue Encoding::CompatibilityError, Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
+					value = '?' * value.length
+				end
+			end
+			value
 		end
 
 		def new_messageid
@@ -453,6 +455,7 @@ module CampingAtMailbox
 				if prior > 0
 					a("Previous #{n}", :href => R(controller, *args) << "?page=#{prior}")
 				end
+				text ' '
 				if nxt <= pages
 					a("Next #{n}", :href => R(controller, *args) << "?page=#{nxt}")
 				end
@@ -622,6 +625,7 @@ module CampingAtMailbox
 			# in the wall next to your head. There seems to be a Message attached.
 			#
 			def get(mb)
+				return redirect R(Login) unless imap
 				@mailbox = mb
 				@class = Mailbox
 				select_mailbox(mb)
@@ -644,6 +648,7 @@ module CampingAtMailbox
 			end
 
 			def post(mailbox)
+				return redirect R(Login) unless imap
 				if input.message
 					if input.action =~ /Delete/
 						if Array === input.message
@@ -698,6 +703,7 @@ module CampingAtMailbox
 		#
 		class Message < R '/mailboxes/(.*)/m(\d+)'
 			def get(mailbox, uid)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				select_mailbox(mailbox)
@@ -711,6 +717,7 @@ module CampingAtMailbox
 		#
 		class MessagePart < R '/mailboxes/(.*)/m(\d+)/part(.*)'
 			def get(mailbox, uid, part)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				select_mailbox(mailbox)
@@ -736,6 +743,7 @@ module CampingAtMailbox
 		#
 		class Attachment < R '/mailboxes/(.*)/m(\d+)/attachment/(.*)'
 			def get(mailbox, uid, part)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@part = part
@@ -752,6 +760,7 @@ module CampingAtMailbox
 		#
 		class Header < R '/mailboxes/(.*)/m(\d+)/headers'
 			def get(mailbox, uid)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				select_mailbox(mailbox)
@@ -824,6 +833,7 @@ module CampingAtMailbox
 				render :compose
 			end
 			def post(messageid)
+				return redirect R(Login) unless imap
 				select_mailbox("Drafts")
 				@messageid = new_messageid
 				@uid = input.uid.to_i
@@ -855,6 +865,7 @@ module CampingAtMailbox
 
 		class Search < R '/search/([^/]*)'
 			def post(mailbox)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				select_mailbox(@mailbox)
 				uids = imap.uid_search(input.search.split(/\s+/).map { |e| ['OR', 'OR', 'BODY', e, 'SUBJECT', e, 'FROM', e] }.inject { |a, e| ['OR', a,  e] }.flatten + ['UNDELETED'])
@@ -875,6 +886,7 @@ module CampingAtMailbox
 				render :purgeconfirm
 			end
 			def post(mailbox)
+				return redirect R(Login) unless imap
 				select_mailbox(mailbox)
 				imap.expunge
 				redirect R(Mailbox, mailbox)
@@ -896,6 +908,7 @@ module CampingAtMailbox
 
 		class Reply < R '/mailboxes/(.*)/m(\d+)/reply(.*)'
 			def get(mailbox, uid, mode)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@messageid = new_messageid
@@ -931,6 +944,7 @@ module CampingAtMailbox
 
 		class Forward < R '/mailboxes/(.*)/m(\d+)/forward'
 			def get(mailbox, uid)
+				return redirect R(Login) unless imap
 				@mailbox = mailbox
 				@uid = uid.to_i
 				@messageid = Time.now.to_i.to_s + '-' + Process.pid.to_s
@@ -1377,7 +1391,7 @@ module CampingAtMailbox
 										text 'To ' 
 										text(env.to[0..8].each do |to|
 											cite(:title => to.mailbox + '@' + to.host) do
-												decode_header(to.name || to.mailbox)
+												decode_header(to.name || to.mailbox).encode('UTF-8')
 											end 
 											self << ' '
 										end)
@@ -1388,7 +1402,7 @@ module CampingAtMailbox
 									end
 									text 'From ' 
 									cite(:title => (env.from[0].mailbox || 'invalid address') + '@' + (env.from[0].host || 'invalid host')) do
-										decode_header(env.from[0].name || env.from[0].mailbox || 'invalid mailbox')
+										decode_header(env.from[0].name || env.from[0].mailbox || 'invalid mailbox').encode('UTF-8')
 									end if env.from
 									span(:class => 'date') {
 										if env.date
@@ -1402,7 +1416,7 @@ module CampingAtMailbox
 									end
 								end
 								p.subject do
-									a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject) end, :href => R(Message, @mailbox, message.attr['UID']))
+									a(if !env.subject or env.subject.strip.empty? then 'no subject' else decode_header(env.subject).encode('UTF-8') end, :href => R(Message, @mailbox, message.attr['UID']))
 								end 
 							end
 							if @mailbox == 'Drafts'
@@ -1424,6 +1438,7 @@ module CampingAtMailbox
 		end
 
 		def _messageheader(envelope, controls = false)
+			raise ArgumentError.new("No envelope given") if !envelope
 			div.header do 
 				p do 
 					text "From " 
@@ -1506,6 +1521,9 @@ module CampingAtMailbox
 		end
 
 		def _messagepartheader(part)
+				if !part
+					raise ArgumentError.new("no message part given")
+				end
 				p.messagepartheader do
 					a("Part #{part.part_id}", :href => R(MessagePart, @mailbox, @uid, part.part_id)) 
 					self << ' '
@@ -1526,8 +1544,10 @@ module CampingAtMailbox
 					# FIXME
 				else
 					div.message do
-						_messageheader(structure.envelope)
-						_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth
+						text 'Unknown message subtype ' << structure.subtype
+						text structure.description if structure.description
+						_messageheader(structure.envelope) if structure.envelope
+						_message(structure.body, depth - 1, maxdepth) if depth <= maxdepth and structure.body
 					end
 				end
 			when Net::IMAP::BodyTypeMultipart
@@ -1564,12 +1584,14 @@ module CampingAtMailbox
 				end
 			when Net::IMAP::BodyTypeText
 				part = decode(structure)
-				if structure.param['CHARSET'] and structure.param['CHARSET'].downcase != 'utf-8'
-					begin
-						part = Iconv.new('utf-8', structure.param['CHARSET'].downcase).iconv(part)
-					rescue Iconv::IllegalSequence
-						part
+				begin
+					if structure.param['CHARSET']
+						part = part.force_encoding(structure.param['CHARSET'].downcase).encode('utf-8')
+					else
+						part = part.encode('UTF-8')
 					end
+				rescue Encoding::InvalidByteSequenceError
+					part = part.encode('UTF-8', invalid: :replace)
 				end
 				case structure.subtype
 				when 'PLAIN'
@@ -1592,6 +1614,10 @@ module CampingAtMailbox
 					pre do
 						capture { WordWrapper.wrap(part).gsub(%r{(http://[^[:space:]]+)}) { |m| "<a href='#{$1}' target='_new'>#{$1}</a>" } }
 					end
+				end
+			when nil
+				p do
+					em	{ 'Invalid attachment omitted' }
 				end
 			else
 				_messagepartheader(structure)
