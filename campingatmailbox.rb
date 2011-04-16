@@ -1602,8 +1602,7 @@ module CampingAtMailbox
 					div.htmlmessage do
 						capture do
 							if b = Hpricot(part, :fixup_tags => true).at('body')
-								b.stag.name = 'div'
-								b.etag = Hpricot::ETag.new('div')
+								b.name = 'div'
 								b
 							else
 								Hpricot(part, :fixup_tags => true)
