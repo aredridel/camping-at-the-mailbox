@@ -12,7 +12,7 @@ require 'stringio'
 require 'hpricot'
 require 'yaml'
 
-$residentsession = [] if !$residentsession
+$residentsession = {} if !$residentsession
 $connections = Hash.new if !$connections
 
 class Net::IMAP
@@ -36,35 +36,6 @@ end
 class String
 	def htmlsafe
 		gsub(/&/, '&amp;').gsub(/>/, '&gt;').gsub(/</, '&lt;')
-	end
-end
-
-class IMAPPool
-	def initialize
-		@pool = Hash.new do |h,k|
-			h[k] = []
-		end
-	end
-	def get(session)
-		p = @pool[session.username]
-		if !i = p.pop
-			i = ReconnectingIMAP.new(session.imaphost)
-			pinger = Thread.new do 
-				while !i.disconnected?
-					i.noop
-					sleep 60
-				end
-			end
-		end
-		yield i
-		p.push i
-
-	end
-
-	@pool = new
-
-	def self.get(session, &block)
-		@pool.get(session, &block)
 	end
 end
 
@@ -161,7 +132,12 @@ end
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
-	include Camping::Session
+	require 'rack/session/redis'
+	use Rack::Session::Redis, {
+		url:  "redis://localhost:6379/0",
+		namespace: "campingatthemailbox:",
+		expire_after: 3600
+	}
 
 	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
@@ -171,10 +147,19 @@ module CampingAtMailbox
 
 	module Helpers
 		def imap
-			if @state[:imap] and !residentsession[:imap]
-				residentsession[:imap] = @state[:imap].dup
+			if !residentsession[:imap]
+				if(@state['imaphost'])
+					residentsession[:imap] = ReconnectingIMAP.new(@state['imaphost'], ($config['imapport'] || 143).to_i, false)
+					residentsession[:imap].authenticate('LOGIN', @state['username'], @state['password'])
+				else
+					return false
+				end
 			end
 			residentsession[:imap]
+		end
+
+		def from
+			Net::IMAP::Address.parse(@state['from'])
 		end
 
 		def ldap
@@ -231,6 +216,9 @@ module CampingAtMailbox
 				end
 				begin
 					value = value.force_encoding(charset.downcase).encode('utf-8')
+				rescue ArgumentError
+					charset = 'utf-8'
+					retry
 				rescue Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
 					if charset.downcase != 'iso8859-1'
 						charset = 'iso8859-1'
@@ -285,11 +273,11 @@ module CampingAtMailbox
 			@addresses = []
 			if pattern
 				st = ('SELECT name, address FROM addresses WHERE user_id = ? AND (name like ? OR address like ?) ORDER BY name, address')
-			rh = $db.execute(st, @state['from'].email)
-				rh = $db.execute(st, @state['from'].email, "#{pattern}%", "#{pattern}%")
+			rh = $db.execute(st, from.email)
+				rh = $db.execute(st, from.email, "#{pattern}%", "#{pattern}%")
 			else
 				st = ('SELECT name, address FROM addresses WHERE user_id = ? ORDER BY name, address')
-				rh = $db.execute(st, @state['from'].email)
+				rh = $db.execute(st, from.email)
 			end
 			rh.fetch do |name,address|
 				@addresses << [name,address]
@@ -321,8 +309,8 @@ module CampingAtMailbox
 		end
 
 		def residentsession
-			if @state['residentsessionid']
-				$residentsession[@state['residentsessionid']] || {}
+			if rsid = @env['rack.session.options'][:id]
+				$residentsession[rsid] ||= {}
 			else
 				{}
 			end
@@ -400,7 +388,7 @@ module CampingAtMailbox
 		end
 
 		def output_message_to(out)
-			out.puts "From: #{@state['from']}"
+			out.puts "From: #{from}"
 			out.puts "To: #{@cmessage.to}"
 			out.puts "CC: #{@cmessage.cc}"
 			out.puts "Subject: #{@cmessage.subject}"
@@ -503,18 +491,14 @@ module CampingAtMailbox
 			def post
 				if /@/ === input.username
 					@state['domain'] = input.username.split('@').last
-					@state['from'] = Net::IMAP::Address.parse(input.username)
+					@state['from'] = input.username
 				else
 					@state['domain'] = @env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
-					@state['from'] = Net::IMAP::Address.parse(input.username + '@' + @state['domain'])
+					@state['from'] = input.username + '@' + @state['domain']
 				end
 
-				@state['residentsessionid'] = $residentsession.size
-				$residentsession << {}
-
 				begin
-					@state.imaphost = imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
-					IMAPPool.get(@state) do |i| end
+					@state['imaphost'] = imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
 					if !imap_connection = $connections[[imaphost, input.username, input.password]] 
 						imap_connection = $connections[[imaphost, input.username, input.password]] = ReconnectingIMAP.new(
 							imaphost,
@@ -571,9 +555,9 @@ module CampingAtMailbox
 					name_attr = $config['ldapnameattr'] || 'cn'
 					ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
 						@state['from'] = if ent[name_attr]
-							Net::IMAP::Address.parse("#{ent[name_attr][0]} <#{ent[mail_attr][0]}>")
+							"#{ent[name_attr][0]} <#{ent[mail_attr][0]}>"
 						else
-							Net::IMAP::Address.parse("#{ent[mail_attr][0]}")
+							"#{ent[mail_attr][0]}"
 						end
 					end
 				end
@@ -582,8 +566,9 @@ module CampingAtMailbox
 
 				t = imap_connection.dup
 				t.send(:instance_variable_set, :@connection, nil)
-				@state[:imap] = t
+				residentsession[:imap] = t
 				if @error
+					@error = "There was an error: " + @error
 					render :login
 				else
 					redirect Mailboxes
@@ -936,7 +921,7 @@ module CampingAtMailbox
 					recips.uniq!
 				end
 
-				@cmessage.to = recips.select { |e| e.email != @state['from'].email }.join(', ')
+				@cmessage.to = recips.select { |e| e.email != from.email }.join(', ')
 				@cmessage.subject = 'Re: ' << decode_header(@message.attr['ENVELOPE'].subject || '')
 				render :compose
 			end
@@ -1033,7 +1018,7 @@ module CampingAtMailbox
 							if recips.empty?
 								raise 'No recipients specified'
 							end
-							@results = smtp.open_message_stream(@state['from'].email, recips) do |out|
+							@results = smtp.open_message_stream(from.email, recips) do |out|
 								output_message_to(out)
 								msg = ''
 								# FIXME, big attachments should totally cause huge core growth
@@ -1083,7 +1068,7 @@ module CampingAtMailbox
 
 					div do
 						h1 'Internal Mail System Error'
-						if $config['erroremail'] and !@state[:debug]
+						if $config['erroremail'] and !@state['debug']
 							p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
 						else
 							h2 "#{k}.#{m}"
@@ -1106,9 +1091,9 @@ module CampingAtMailbox
 			end
 			def post
 				if @input[:debug] == 'Enable'
-					@state[:debug] = true
+					@state['debug'] = true
 				else
-					@state[:debug] = false
+					@state['debug'] = false
 				end
 				redirect R(Index)
 			end
@@ -1126,7 +1111,7 @@ module CampingAtMailbox
 				@errors = []
 				fetch_addresses
 				if /@/ === input.address
-					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, @state['from'].email)
+					$db.execute("INSERT INTO addresses (name, address, user_id) VALUES (?, ?, ?)", input.name, input.address, from.email)
 					redirect R(Addresses)
 				else
 					@errors << "That didn't look like an email address -- it's gotta at least have an @"
@@ -1154,7 +1139,7 @@ module CampingAtMailbox
 			end
 
 			def post(address)
-				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", @state['from'].email, address)
+				$db.do("DELETE FROM addresses WHERE user_id = ? AND address = ?", from.email, address)
 				redirect R(Addresses)
 			end
 		end
@@ -1240,7 +1225,7 @@ module CampingAtMailbox
 					script :src => R(Scripts, 'site'), :type => 'text/javascript' do '' end
 				end
 				body do
-					if @state[:debug]
+					if @state['debug']
 						p { @state.inspect.htmlsafe }
 						p { residentsession.inspect.htmlsafe }
 					end
