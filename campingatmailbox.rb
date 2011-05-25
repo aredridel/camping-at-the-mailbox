@@ -132,13 +132,6 @@ end
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
-	require 'rack/session/redis'
-	use Rack::Session::Redis, {
-		url:  "redis://localhost:6379/0",
-		namespace: "campingatthemailbox:",
-		expire_after: 3600
-	}
-
 	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
 
