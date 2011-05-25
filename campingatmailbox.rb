@@ -653,13 +653,13 @@ module CampingAtMailbox
 		#
 		class Style < R '/(.*).css'
 			def get(file)
-				serve file+'.css'
+				serve 'public/'+file+'.css'
 			end
 		end
 
 		class Scripts < R '/(.*).js'
 			def get(file)
-				serve file+'.js'
+				serve 'public/' +file+'.js'
 			end
 		end
 
