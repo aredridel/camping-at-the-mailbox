@@ -1,6 +1,10 @@
 Camping At The Mailbox
 ======================
 
+Camping at the Mailbox is a lightweight mail system, intended to be quick,
+usable, and work even on limited devices like a Kindle, Nook, mobile browser or
+ancient PC.
+
 Dependencies
 ------------
 
