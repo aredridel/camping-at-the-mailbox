@@ -37,12 +37,15 @@ Setup
 
 `mailbox.conf` contains values to configure Camping at the Mailbox.
 
-### Required settings
+Required settings
+-----------------
+
 `imaphost` and `smtphost`, both of which can use the 
 token `%{domain}`, which will be replaced by the domain in the
 supplied username, or a guess from the HTTP host.
 
-### Optional settings
+Optional settings
+-----------------
 
 `imapport` and `smtpport` can be used to change which 
 ports are connected to. Ruby's Net::IMAP module will use SSL on port 993 for 
@@ -77,12 +80,14 @@ by RDN
 Make sure that both the name and mail attributes are mandatory in your LDAP
 schema.
 
-### Other files
+Other files
+-----------
 
 You can make a file `banner`, which will be displayed on the login
 screen.
 
-== Schema
+Schema
+------
 
     CREATE TABLE addresses (id integer primary key, name varchar(255), 
         address varchar(255) not null, user_id varchar(255) not null);
