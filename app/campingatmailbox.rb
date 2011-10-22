@@ -1,6 +1,8 @@
 #!/usr/bin/ruby
 # encoding: utf-8
 
+$0 = "campingatthemailbox"
+
 require 'camping'
 require 'camping/session'
 require 'markaby'
@@ -115,6 +117,7 @@ class Net::IMAP::Address
 	end
 
 	def self.parse address
+        return nil unless address
 		if /(.*) <(.*)@(.*)>/ === address
 			self.new $1, nil, $2, $3
 		elsif /(.*)@(.*) \((.*)\)/ === address
@@ -132,6 +135,7 @@ end
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
+
 	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
 	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
 
@@ -141,9 +145,9 @@ module CampingAtMailbox
 	module Helpers
 		def imap
 			if !residentsession[:imap]
-				if(@state['imaphost'])
-					residentsession[:imap] = ReconnectingIMAP.new(@state['imaphost'], ($config['imapport'] || 143).to_i, false)
-					residentsession[:imap].authenticate('LOGIN', @state['username'], @state['password'])
+				if(@env['rack.session']['imaphost'])
+					residentsession[:imap] = ReconnectingIMAP.new(@env['rack.session']['imaphost'], ($config['imapport'] || 143).to_i, false)
+					residentsession[:imap].authenticate('LOGIN', @env['rack.session']['username'], @env['rack.session']['password'])
 				else
 					return false
 				end
@@ -152,7 +156,7 @@ module CampingAtMailbox
 		end
 
 		def from
-			Net::IMAP::Address.parse(@state['from'])
+			Net::IMAP::Address.parse(@env['rack.session']['from'])
 		end
 
 		def ldap
@@ -160,7 +164,7 @@ module CampingAtMailbox
 		end
 
 		def ldap_base
-			$config['ldapbase'].gsub('%{domain}', @state['domain'].split('.').map { |e| "dc=#{e}" }.join(','))
+			$config['ldapbase'].gsub('%{domain}', @env['rack.session']['domain'].split('.').map { |e| "dc=#{e}" }.join(','))
 		end
 
 		def composing_messages(k)
@@ -483,15 +487,15 @@ module CampingAtMailbox
 			# See Mailboxes
 			def post
 				if /@/ === input.username
-					@state['domain'] = input.username.split('@').last
-					@state['from'] = input.username
+					@env['rack.session']['domain'] = input.username.split('@').last
+					@env['rack.session']['from'] = input.username
 				else
-					@state['domain'] = @env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
-					@state['from'] = input.username + '@' + @state['domain']
+					@env['rack.session']['domain'] = @env['HTTP_HOST'].split(':').first.gsub(/^(web)?mail\./, '')
+					@env['rack.session']['from'] = input.username + '@' + @env['rack.session']['domain']
 				end
 
 				begin
-					@state['imaphost'] = imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @state['domain'])
+					@env['rack.session']['imaphost'] = imaphost = ($config['imaphost'] || input.imaphost).gsub('%{domain}', @env['rack.session']['domain'])
 					if !imap_connection = $connections[[imaphost, input.username, input.password]] 
 						imap_connection = $connections[[imaphost, input.username, input.password]] = ReconnectingIMAP.new(
 							imaphost,
@@ -540,22 +544,22 @@ module CampingAtMailbox
 				residentsession[:usesort] = if imap.capability.include? "SORT" then true else false end
 				if $config['ldaphost']
 					residentsession[:ldap] = Net::LDAP.new(
-						:host => $config['ldaphost'].gsub('%{domain}', @state['domain']),
+						:host => $config['ldaphost'].gsub('%{domain}', @env['rack.session']['domain']),
 						:port => $config['ldapport'] || 389
 					)
 					ldap_filter = "(#{$config['ldaprdnattr'] || 'dn'}=#{input.username})"
 					mail_attr = $config['ldapmailattr'] || 'mail'
 					name_attr = $config['ldapnameattr'] || 'cn'
 					ldap.search(:base => ldap_base, :filter => ldap_filter) do |ent|
-						@state['from'] = if ent[name_attr]
+						@env['rack.session']['from'] = if ent[name_attr]
 							"#{ent[name_attr][0]} <#{ent[mail_attr][0]}>"
 						else
 							"#{ent[mail_attr][0]}"
 						end
 					end
 				end
-				@state['username'] = input.username
-				@state['password'] = input.password
+				@env['rack.session']['username'] = input.username
+				@env['rack.session']['password'] = input.password
 
 				t = imap_connection.dup
 				t.send(:instance_variable_set, :@connection, nil)
@@ -670,7 +674,7 @@ module CampingAtMailbox
 				rescue Exception => e
 				end
 				residentsession
-				@state.clear
+				@env['rack.session'].clear
 				residentsession.clear
 				redirect R(Login)
 			end
@@ -900,7 +904,7 @@ module CampingAtMailbox
 				else
 					envelope.reply_to 
 				end
-	
+
 				if mode == 'all'
 					if envelope.to
 						recips += envelope.to 
@@ -913,6 +917,8 @@ module CampingAtMailbox
 					end
 					recips.uniq!
 				end
+
+                STDERR.puts @env.inspect
 
 				@cmessage.to = recips.select { |e| e.email != from.email }.join(', ')
 				@cmessage.subject = 'Re: ' << decode_header(@message.attr['ENVELOPE'].subject || '')
@@ -996,12 +1002,12 @@ module CampingAtMailbox
 					redirect R(Mailbox, 'Drafts')
 				else			
 					connect_params = [
-						$config['smtphost'].gsub('%{domain}', @state['domain']), 
+						$config['smtphost'].gsub('%{domain}', @env['rack.session']['domain']), 
 						$config['smtpport'].to_i,
 						@env['HTTP_HOST'].split(':').first
 					]
 					if $config['smtpauth']
-						connect_params += [@state['username'], @state['password'], :plain]
+						connect_params += [@env['rack.session']['username'], @env['rack.session']['password'], :plain]
 					end
 					begin
 						Net::SMTP.start(*connect_params) do |smtp|
@@ -1050,7 +1056,7 @@ module CampingAtMailbox
 				else
 					if $config['erroremail']
 						IO.popen("mail -s 'Camping at the mailbox error' #{$config['erroremail']}", 'w') do |err|
-							err.puts "State: #{@state.inspect}"
+							err.puts "State: #{@env['rack.session'].inspect}"
 							err.puts "Resident: #{residentsession.inspect}"
 							err.puts "Error in #{k}.#{m}; #{e.class} #{e.message}:"
 							e.backtrace.each do |bt|
@@ -1061,7 +1067,7 @@ module CampingAtMailbox
 
 					div do
 						h1 'Internal Mail System Error'
-						if $config['erroremail'] and !@state['debug']
+						if $config['erroremail'] and !@env['rack.session']['debug']
 							p { "The error message has been sent off for inspection -- this really shouldn't happen. Sorry about that!" }
 						else
 							h2 "#{k}.#{m}"
@@ -1084,9 +1090,9 @@ module CampingAtMailbox
 			end
 			def post
 				if @input[:debug] == 'Enable'
-					@state['debug'] = true
+					@env['rack.session']['debug'] = true
 				else
-					@state['debug'] = false
+					@env['rack.session']['debug'] = false
 				end
 				redirect R(Index)
 			end
@@ -1218,8 +1224,8 @@ module CampingAtMailbox
 					script :src => R(Scripts, 'site'), :type => 'text/javascript' do '' end
 				end
 				body do
-					if @state['debug']
-						p { @state.inspect.htmlsafe }
+					if @env['rack.session']['debug']
+						p { @env['rack.session'].inspect.htmlsafe }
 						p { residentsession.inspect.htmlsafe }
 					end
 					#h1.header { a 'Mail?', :href => R(Index) }
@@ -1467,8 +1473,8 @@ module CampingAtMailbox
 						envelope.to, envelope.cc, envelope.bcc, 
 						envelope.reply_to, envelope.from 
 				].flatten.select do |e| 
-					STDERR.puts @state.inspect
-					e and e.email != @state['username']
+					STDERR.puts @env['rack.session'].inspect
+					e and e.email != @env['rack.session']['username']
 				end.uniq.size > 1)
 			end
 		end
@@ -1755,15 +1761,4 @@ tryAt)
 		end
 		return lineEnd
 	end
-end
-
-Dir.chdir(File.dirname(__FILE__))
-$config = YAML.load(File.read('mailbox.conf'))
-$db = DBI.connect($config['database'])
-$cleanup = Thread.new { GC.start; sleep 60 } if not $cleanup
-if $config['ldaphost']
-	require 'net/ldap'
-end
-if $config['smtptls']
-	require 'net/smtp_tls'
 end
