@@ -5,26 +5,8 @@ Camping at the Mailbox is a lightweight mail system, intended to be quick,
 usable, and work even on limited devices like a Kindle, Nook, mobile browser or
 ancient PC.
 
-Dependencies
-------------
-
-- camping
-	- markaby
-	- metaid
-
-- stdlib
-	- net/imap
-	- net/smtp
-	- yaml
-
-- ruby-dbi
-	- dbd-sqlite3
-
-- net-ldap
-
-- hpricot
-
-== Features
+Features
+--------
 
 - Manipulating messages:
 	- Read (including attachments)
