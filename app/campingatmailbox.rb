@@ -343,7 +343,7 @@ module CampingAtMailbox
 		
 		def get_mailbox_list
 			@mailboxes = imap.lsub('', '*')
-			 if !@mailboxes
+			if !@mailboxes
 				@error = 'You have no mailboxes subscribed, showing everything'
 				@mailboxes = imap.list('', '*')
 			end
@@ -1000,7 +1000,6 @@ module CampingAtMailbox
 					imap.append("Drafts", m)
 					redirect R(Mailbox, 'Drafts')
 				else			
-File.open('/tmp/debug', 'w') do |f| f.write(@env) end
 					connect_params = [
 						$config['smtphost'].gsub('%{domain}', @state['domain']), 
 						$config['smtpport'].to_i,
@@ -1080,8 +1079,7 @@ File.open('/tmp/debug', 'w') do |f| f.write(@env) end
 						p { self << "You can try "; a('logging off', :href=> R(Logout)); self << ' and seeing if it helps' }
 					end
 				end
-
-     	end
+			end
 		end
 
 		class Debug < R '/debug'
@@ -1202,13 +1200,13 @@ File.open('/tmp/debug', 'w') do |f| f.write(@env) end
 			end
 		end
 
-	def debug
-		form :action => R(Debug), :method => 'post' do
-			h1 'Enable debugging?'
-			input :type => 'submit', :value => 'Enable', :name => 'debug'
-			input :type => 'submit', :value => 'Disable', :name => 'debug'
+		def debug
+			form :action => R(Debug), :method => 'post' do
+				h1 'Enable debugging?'
+				input :type => 'submit', :value => 'Enable', :name => 'debug'
+				input :type => 'submit', :value => 'Disable', :name => 'debug'
+			end
 		end
-	end
 
 		def layout
 			html do
@@ -1317,14 +1315,6 @@ File.open('/tmp/debug', 'w') do |f| f.write(@env) end
 			_controls
 			h1 "Mailboxes"
 			_mblist(@mailboxes)
-			return
-			ul do
-				@mailboxes.each do |mb|
-					li do
-						a(mb.name, :href => R(Mailbox, mb.name))
-					end
-				end
-			end
 		end
 
 		def _mblist(l, depth = 0)
@@ -1584,11 +1574,11 @@ File.open('/tmp/debug', 'w') do |f| f.write(@env) end
 					end
 				when 'HTML'
 					div.htmlmessage do
-                        if b = Nokogiri::HTML.parse(part).at('body')
-                            b.name = 'div'
-                            b
-                        else
-                            Nokogiri::HTML.parse(part)
+						if b = Nokogiri::HTML.parse(part).at('body')
+							b.name = 'div'
+							b
+						else
+							Nokogiri::HTML.parse(part)
 						end
 					end
 				else
@@ -1726,13 +1716,10 @@ module WordWrapper
 				lineEnd = lineStart + width
 				next
 			end
-			tryAt = lastSpaceOnLine(paragraph, lineStart, 
-lineEnd)
-			paragraph[tryAt] = paragraph[tryAt].chr + 
-"\n"
+			tryAt = lastSpaceOnLine(paragraph, lineStart, lineEnd)
+			paragraph[tryAt] = paragraph[tryAt].chr + "\n"
 			tryAt += 2
-			lineStart = findFirstNonSpace(paragraph, 
-tryAt)
+			lineStart = findFirstNonSpace(paragraph, tryAt)
 			paragraph[tryAt...lineStart] = ''
 			lineStart = tryAt
 			lineEnd = lineStart+width
