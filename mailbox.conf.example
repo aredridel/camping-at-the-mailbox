@@ -7,6 +7,5 @@ ldapbase: ou=Users,%{domain}
 ldapmailattr: uid
 ldapdnattr: uid
 banner: Username guest@theinternetco.net password Aeco3ahr
-database: dbi:SQlite3:campingatmailbox.db
 erroremail: guest@theinternetco.net
-
+secret: blabla

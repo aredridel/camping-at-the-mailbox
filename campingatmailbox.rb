@@ -3,15 +3,26 @@
 
 $0 = "campingatthemailbox"
 
+Dir.chdir(File.dirname(__FILE__))
+
+$LOAD_PATH.unshift 'lib'
+
 require 'camping'
+require 'camping/session'
+require 'yaml'
 require 'markaby'
 require 'net/imap'
 require 'net/imap2'
 require 'net/smtp'
-require 'dbi'
+require 'net/smtp_tls'
+require 'net/ldap'
 require 'stringio'
 require 'nokogiri'
 require 'yaml'
+require 'rack/sendfile'
+require 'securerandom'
+
+$config = YAML.load(File.read('mailbox.conf'))
 
 $residentsession = {} if !$residentsession
 $connections = Hash.new if !$connections
@@ -48,6 +59,10 @@ class ReconnectingIMAP
 		@authenticated
 	end
 
+	def secured?
+		@secured
+	end
+
 	def initialize(*args)
 		@initargs = args
 		@connection = Net::IMAP.new(*args)
@@ -74,15 +89,20 @@ class ReconnectingIMAP
 		r
 	end
 
+	def starttls
+		@connection.starttls
+		@secured = true
+	end
+
 	def reconnect
 		$stderr.puts "Reconnecting"
 		begin
 			@connection.disconnect
 		rescue
 		end
-		@connection.instance_variable_set(:@socket, nil)
 		initialize(*@initargs)
-		send(@loginmethod, *@loginargs)
+		starttls
+		send(@loginmethod, *@loginargs) if @authenticated
 		select(*@selectargs) if @selectargs
 	end
 
@@ -134,9 +154,12 @@ end
 
 Camping.goes :CampingAtMailbox
 module CampingAtMailbox
+	use Rack::ShowExceptions
+	set :secret, $config['secret']
+	include Camping::Session
 
-	Flagnames = { :Seen => 'read', :Answered => 'replied to' }
-	Filetypes = { 'js' => 'text/javascript', 'css' => 'text/css' }
+	Flagnames = { Seen: 'read', Answered: 'replied to' }
+	Filetypes = { js: 'text/javascript', css: 'text/css' }
 
 	class UserError < Exception
 	end
@@ -146,6 +169,7 @@ module CampingAtMailbox
 			if !residentsession[:imap]
 				if(@state['imaphost'])
 					residentsession[:imap] = ReconnectingIMAP.new(@state['imaphost'], ($config['imapport'] || 143).to_i, false)
+					residentsession[:imap].starttls
 					residentsession[:imap].authenticate('LOGIN', @state['username'], @state['password'])
 				else
 					return false
@@ -305,11 +329,8 @@ module CampingAtMailbox
 		end
 
 		def residentsession
-			if rsid = @env['rack.request.cookie_hash']['rack.session']
-				$residentsession[rsid] ||= {}
-			else
-				raise "No session found" 
-			end
+			@state[:sid] ||= SecureRandom.alphanumeric
+			$residentsession[@state[:sid]] ||= {}
 		end
 
 		def imap_response_handler(resp)
@@ -511,6 +532,10 @@ module CampingAtMailbox
 					end
 				end
 
+				if !imap_connection.secured?
+					imap_connection.starttls
+				end
+
 				if !imap_connection.authenticated?
 					begin
 						if imap_connection.capability.include? 'AUTH=LOGIN'
@@ -569,7 +594,6 @@ module CampingAtMailbox
 				else
 					redirect Mailboxes
 				end
-				render :login
 			end
 
 			# You slip your key in the lock.
@@ -916,8 +940,6 @@ module CampingAtMailbox
 					end
 					recips.uniq!
 				end
-
-                STDERR.puts @env.inspect
 
 				@cmessage.to = recips.select { |e| e.email != from.email }.join(', ')
 				@cmessage.subject = 'Re: ' << decode_header(@message.attr['ENVELOPE'].subject || '')
@@ -1463,7 +1485,6 @@ module CampingAtMailbox
 						envelope.to, envelope.cc, envelope.bcc, 
 						envelope.reply_to, envelope.from 
 				].flatten.select do |e| 
-					STDERR.puts @state.inspect
 					e and e.email != @state['username']
 				end.uniq.size > 1)
 			end
